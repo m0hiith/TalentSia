@@ -70,7 +70,7 @@ const Skills = () => {
               <span className="text-muted-foreground">Match Score</span>
             </div>
             <div className="flex items-center gap-3">
-              <p className="text-2xl font-bold text-gradient text-secondary-foreground">{matchPercentage}%</p>
+              <p className="text-2xl font-bold text-gradient text-black">{matchPercentage}%</p>
               <Progress value={matchPercentage} className="flex-1 h-2" />
             </div>
           </div>
