@@ -32,7 +32,7 @@ const Skills = () => {
       <div className="container mx-auto px-4 max-w-5xl">
         <div className="text-center mb-10 animate-fade-in">
           <h1 className="text-3xl md:text-4xl font-bold mb-4">
-            Your <span className="text-gradient bg-primary-foreground text-primary-foreground">Skills Dashboard</span>
+            Your Skill Dashboard    <span className="text-gradient bg-primary-foreground text-primary-foreground">​</span>
           </h1>
           <p className="text-lg text-muted-foreground">
             See how your skills compare to market demands
