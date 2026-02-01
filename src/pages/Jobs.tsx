@@ -113,7 +113,7 @@ const Jobs = () => {
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="text-center mb-10 animate-fade-in">
           <h1 className="text-3xl md:text-4xl font-bold mb-4">
-            Find Your <span className="text-gradient text-primary-foreground">Dream Job</span>
+            Find Your Dream Job   <span className="text-gradient text-primary-foreground">​ </span>
           </h1>
           <p className="text-lg text-muted-foreground">
             Discover opportunities that match your skills and experience
