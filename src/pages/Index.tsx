@@ -2,28 +2,21 @@ import { Link } from "react-router-dom";
 import { ArrowRight, FileSearch, Target, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FeatureCard from "@/components/FeatureCard";
-
 const Index = () => {
-  const features = [
-    {
-      icon: FileSearch,
-      title: "Resume Analysis",
-      description: "Upload your resume and let our AI extract your skills, experience, and qualifications automatically.",
-    },
-    {
-      icon: Target,
-      title: "Skill Gap Finder",
-      description: "Discover exactly which skills you need to learn to qualify for your dream roles.",
-    },
-    {
-      icon: Briefcase,
-      title: "Job Matching",
-      description: "Find jobs that match your profile with personalized match scores and recommendations.",
-    },
-  ];
-
-  return (
-    <div className="min-h-screen flex flex-col">
+  const features = [{
+    icon: FileSearch,
+    title: "Resume Analysis",
+    description: "Upload your resume and let our AI extract your skills, experience, and qualifications automatically."
+  }, {
+    icon: Target,
+    title: "Skill Gap Finder",
+    description: "Discover exactly which skills you need to learn to qualify for your dream roles."
+  }, {
+    icon: Briefcase,
+    title: "Job Matching",
+    description: "Find jobs that match your profile with personalized match scores and recommendations."
+  }];
+  return <div className="min-h-screen flex flex-col">
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 overflow-hidden">
         {/* Background effects */}
@@ -35,12 +28,14 @@ const Index = () => {
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 animate-fade-in">
               Find Your Perfect Job.{" "}
-              <span className="text-gradient">Close Every Skill Gap.</span>
+              <span className="text-gradient"></span>
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground mb-10 animate-fade-in-up max-w-2xl mx-auto">
               Upload your resume, discover what skills you need, and find jobs that match your profile.
             </p>
-            <div className="animate-fade-in-up" style={{ animationDelay: "200ms" }}>
+            <div className="animate-fade-in-up" style={{
+            animationDelay: "200ms"
+          }}>
               <Link to="/upload">
                 <Button size="lg" className="gradient-primary hover:opacity-90 transition-opacity text-lg px-8 py-6 animate-glow">
                   Get Started
@@ -58,7 +53,7 @@ const Index = () => {
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 animate-fade-in">
               Everything You Need to{" "}
-              <span className="text-gradient">Land Your Dream Job</span>
+              <span className="text-gradient"></span>
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Our powerful AI-driven tools help you understand your strengths and identify opportunities for growth.
@@ -66,15 +61,7 @@ const Index = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {features.map((feature, index) => (
-              <FeatureCard
-                key={feature.title}
-                icon={feature.icon}
-                title={feature.title}
-                description={feature.description}
-                delay={index * 100}
-              />
-            ))}
+            {features.map((feature, index) => <FeatureCard key={feature.title} icon={feature.icon} title={feature.title} description={feature.description} delay={index * 100} />)}
           </div>
         </div>
       </section>
@@ -101,8 +88,6 @@ const Index = () => {
           </div>
         </div>
       </section>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
