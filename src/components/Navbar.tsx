@@ -35,12 +35,7 @@ const Navbar = () => {
     <div className="container mx-auto px-4">
       <div className="flex items-center justify-between h-16">
         <Link to="/" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center animate-glow">
-            <Briefcase className="w-4 h-4 text-primary-foreground" />
-          </div>
-          <span className="text-xl font-bold text-foreground group-hover:text-primary transition-colors">
-            TalentSia
-          </span>
+          <img src="/logo.png" alt="TalentSia Logo" className="h-10 w-auto" />
         </Link>
 
         <div className="hidden md:flex items-center gap-1">

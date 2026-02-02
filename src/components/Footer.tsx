@@ -6,11 +6,9 @@ const Footer = () => {
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 gradient-primary rounded-md flex items-center justify-center">
-              <Briefcase className="w-3 h-3 text-primary-foreground" />
-            </div>
+            <img src="/logo.png" alt="TalentSia" className="w-8 h-8" />
             <span className="text-sm text-muted-foreground">
-              © 2025 ATS Finder. Built to help you land your dream job.
+              © 2025 TalentSia. Built to help you land your dream job.
             </span>
           </div>
         </div>
