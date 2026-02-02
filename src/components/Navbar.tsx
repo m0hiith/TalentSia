@@ -1,7 +1,18 @@
 import { Link, useLocation } from "react-router-dom";
-import { Briefcase, FileText, BarChart3, Home } from "lucide-react";
+import { Briefcase, FileText, BarChart3, Home, LogIn, LogOut, User } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
 const Navbar = () => {
   const location = useLocation();
+  const { user, signOut } = useAuth();
+
   const navItems = [{
     path: "/",
     label: "Home",
@@ -19,40 +30,70 @@ const Navbar = () => {
     label: "Jobs",
     icon: Briefcase
   }];
-  return <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center animate-glow">
-              <Briefcase className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold text-foreground group-hover:text-primary transition-colors">
-              TalentSia
-            </span>
-          </Link>
 
-          <div className="hidden md:flex items-center gap-1">
-            {navItems.map(item => {
+  return <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
+    <div className="container mx-auto px-4">
+      <div className="flex items-center justify-between h-16">
+        <Link to="/" className="flex items-center gap-2 group">
+          <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center animate-glow">
+            <Briefcase className="w-4 h-4 text-primary-foreground" />
+          </div>
+          <span className="text-xl font-bold text-foreground group-hover:text-primary transition-colors">
+            TalentSia
+          </span>
+        </Link>
+
+        <div className="hidden md:flex items-center gap-1">
+          {navItems.map(item => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
             return <Link key={item.path} to={item.path} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ${isActive ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"}`}>
-                  <Icon className="w-4 h-4" />
-                  <span className="font-medium">{item.label}</span>
-                </Link>;
+              <Icon className="w-4 h-4" />
+              <span className="font-medium">{item.label}</span>
+            </Link>;
           })}
-          </div>
+        </div>
 
-          <div className="md:hidden flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <User className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem className="font-medium">
+                  {user.email}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={signOut} className="text-destructive">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link to="/auth">
+              <Button size="sm" className="gradient-primary">
+                <LogIn className="w-4 h-4 mr-2" />
+                Sign In
+              </Button>
+            </Link>
+          )}
+
+          {/* Mobile usage only shows icon links in original code, simplifying for now */}
+          <div className="md:hidden flex items-center gap-1 ml-2">
             {navItems.map(item => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            return <Link key={item.path} to={item.path} className={`p-2 rounded-lg transition-all duration-300 ${isActive ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
-                  <Icon className="w-5 h-5" />
-                </Link>;
-          })}
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path;
+              return <Link key={item.path} to={item.path} className={`p-2 rounded-lg transition-all duration-300 ${isActive ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                <Icon className="w-5 h-5" />
+              </Link>;
+            })}
           </div>
         </div>
       </div>
-    </nav>;
+    </div>
+  </nav>;
 };
 export default Navbar;
