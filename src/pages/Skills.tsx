@@ -105,8 +105,7 @@ const Skills = () => {
             <span className="text-muted-foreground">ATS Match Score</span>
           </div>
           <div className="flex items-center gap-3">
-            <p className="text-2xl font-bold text-gradient text-black">{score}%</p>
-            <Progress value={score} className="flex-1 h-2" />
+            <p className="text-3xl font-bold text-primary">{score}/100</p>
           </div>
         </div>
       </div>

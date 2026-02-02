@@ -118,22 +118,42 @@ const Jobs = () => {
     return MOCK_JOBS_DB.map(job => {
       if (!resumeData) return { ...job, match: 0 };
 
+      // 1. Skill Match (60%)
       const jobSkills = job.skills.map(s => s.toLowerCase());
-      const matchedSkills = jobSkills.filter(js => userSkillsLower.some(us => us.includes(js) || js.includes(us)));
+      const userSkills = userSkillsLower;
+      const matchedSkills = jobSkills.filter(js => userSkills.some(us => us.includes(js) || js.includes(us)));
+      const skillScore = (matchedSkills.length / Math.max(jobSkills.length, 1)) * 100;
+      const weightedSkillScore = skillScore * 0.6;
 
-      const matchRatio = matchedSkills.length / jobSkills.length;
-      let matchScore = Math.round(matchRatio * 100);
-
-      // Boost score if title matches interests roughly (a simple heuristic)
-      if (resumeData.interests) {
-        if (resumeData.interests.some(i => job.title.toLowerCase().includes(i.toLowerCase()))) {
-          matchScore += 10;
-        }
+      // 2. Experience Match (20%)
+      // Heuristic: If user has >= 3 years, they get full points for most mid-level logic
+      // Ideally we'd have a 'required_years' in the job, but we'll infer it or use a standard
+      const userYears = resumeData.experience_years || 0;
+      let experienceScore = 0;
+      if (job.title.toLowerCase().includes("senior")) {
+        experienceScore = userYears >= 5 ? 100 : (userYears / 5) * 100;
+      } else if (job.title.toLowerCase().includes("junior") || job.title.toLowerCase().includes("intern")) {
+        experienceScore = userYears >= 0 ? 100 : 50; // Everyone qualifies for junior
+      } else {
+        // Mid level
+        experienceScore = userYears >= 2 ? 100 : (userYears / 2) * 100;
       }
+      const weightedExperienceScore = experienceScore * 0.2;
 
-      return { ...job, match: Math.min(100, matchScore) };
+      // 3. Role/Interest Match (20%)
+      let roleScore = 0;
+      if (resumeData.interests && resumeData.interests.some(i => job.title.toLowerCase().includes(i.toLowerCase()))) {
+        roleScore = 100;
+      } else if (resumeData.job_titles && resumeData.job_titles.some(t => job.title.toLowerCase().includes(t.toLowerCase()))) {
+        roleScore = 100;
+      }
+      const weightedRoleScore = roleScore * 0.2;
+
+      const totalScore = Math.round(weightedSkillScore + weightedExperienceScore + weightedRoleScore);
+
+      return { ...job, match: Math.min(100, totalScore) };
     });
-  }, [resumeData]);
+  }, [resumeData, userSkillsLower]);
 
   const filteredAndSortedJobs = useMemo(() => {
     let jobs = jobsWithMatch.filter(job =>
