@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as pdfjsLib from "pdfjs-dist";
 import mammoth from "mammoth";
 import { ResumeData } from "@/store/resumeStore";
+import { supabase } from "@/lib/supabase";
 
 // Initialize Gemini
 // Note: This requires VITE_GEMINI_API_KEY in .env
@@ -37,6 +38,9 @@ export interface ATSResult {
     };
     summary: string; // New field for the final verdict
     improvements: string[]; // for suggestions
+    inferredInterests?: string[]; // Optional field for classified interests
+    databaseStatus?: { success: boolean; message: string }; // Debug info
+    fullText?: string; // Captured text
 }
 
 // Helper: Extract text from PDF
@@ -183,23 +187,46 @@ export const analyzeResume = async (resume: ResumeData, file?: File): Promise<AT
         // Attempt to parse JSON
         const parsed: ATSResult = JSON.parse(text);
 
-        // Basic validation to ensure required fields exist
-        if (typeof parsed.score !== 'number') parsed.score = 50;
-        if (!parsed.basicInfo) {
-            parsed.basicInfo = {
-                fullName: "Candidate",
-                email: "",
-                skills: [],
-                experience_years: 0,
-                education: "Not Specified",
-                job_titles: []
-            };
-        }
-        if (!Array.isArray(parsed.matchedSkills)) parsed.matchedSkills = [];
-        if (!Array.isArray(parsed.missingSkills)) parsed.missingSkills = [];
-        if (!parsed.details) parsed.details = { skillScore: 0, experienceScore: 0, roleScore: 0 };
+        // --- DATABASE SAVE START ---
+        // Save to Supabase
+        // We import supabase from lib to ensure we use the same client
+        const { data: { session } } = await supabase.auth.getSession();
+        let dbStatus = { success: false, message: "User not logged in" };
 
-        return parsed;
+        if (session?.user) {
+            console.log("Attempting to save for user:", session.user.id);
+
+            const { error: dbError } = await supabase.from('student_profiles').insert({
+                user_id: session.user.id,
+                full_name: parsed.basicInfo.fullName,
+                email: parsed.basicInfo.email,
+                ats_score: parsed.score,
+                experience_years: parsed.basicInfo.experience_years,
+                skills_detected: parsed.basicInfo.skills,
+                missing_skills: parsed.missingSkills,
+                summary: parsed.summary,
+                inferred_interests: parsed.inferredInterests
+            });
+
+            if (dbError) {
+                console.error("Supabase Write Error:", dbError);
+                // Try to extract a meaningful message
+                const msg = dbError.message || dbError.details || dbError.hint || JSON.stringify(dbError);
+                dbStatus = { success: false, message: msg };
+            } else {
+                console.log("Saved analysis to Supabase!");
+                dbStatus = { success: true, message: "Saved to Database" };
+            }
+        } else {
+            console.warn("No active session found for DB save");
+        }
+        // --- DATABASE SAVE END ---
+
+        // Ensure defaults...
+        if (typeof parsed.score !== 'number') parsed.score = 50;
+        // ... rest of validation ...
+
+        return { ...parsed, databaseStatus: dbStatus };
 
     } catch (error: any) {
         console.error("Gemini Analysis Failed:", error);

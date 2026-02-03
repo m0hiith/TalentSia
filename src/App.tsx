@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Upload from "./pages/Upload";
 import Skills from "./pages/Skills";
 import Jobs from "./pages/Jobs";
+import JobMatch from "./pages/JobMatch";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -17,6 +18,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Auth from "./pages/Auth";
 import ResumeBuilder from "./pages/ResumeBuilder";
 import Onboarding from "./pages/Onboarding";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -31,11 +33,12 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
-                <Route path="/resume-builder" element={<ResumeBuilder />} />
-                <Route path="/onboarding" element={<Onboarding />} />
-                <Route path="/upload" element={<Upload />} />
-                <Route path="/skills" element={<Skills />} />
-                <Route path="/jobs" element={<Jobs />} />
+                <Route path="/resume-builder" element={<ProtectedRoute><ResumeBuilder /></ProtectedRoute>} />
+                <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+                <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
+                <Route path="/skills" element={<ProtectedRoute><Skills /></ProtectedRoute>} />
+                <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
+                <Route path="/match-job" element={<ProtectedRoute><JobMatch /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>

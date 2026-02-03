@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export interface WorkExperience {
   id: string;
@@ -20,6 +21,7 @@ export interface ResumeData {
   education: string;
   job_titles: string[];
   workExperience?: WorkExperience[];
+  resumeText?: string; // Raw text for job matching
 
   // Analysis & Preferences
   interests?: string[];
@@ -37,11 +39,21 @@ interface ResumeStore {
   clearResumeData: () => void;
 }
 
-export const useResumeStore = create<ResumeStore>((set) => ({
-  resumeData: null,
-  setResumeData: (data) => set({ resumeData: data }),
-  updateResumeData: (data) => set((state) => ({
-    resumeData: state.resumeData ? { ...state.resumeData, ...data } : data as ResumeData
-  })),
-  clearResumeData: () => set({ resumeData: null }),
-}));
+export const useResumeStore = create<ResumeStore>()(
+  persist(
+    (set) => ({
+      resumeData: null,
+      setResumeData: (data) => set({ resumeData: data }),
+      updateResumeData: (data) =>
+        set((state) => ({
+          resumeData: state.resumeData
+            ? { ...state.resumeData, ...data }
+            : (data as ResumeData),
+        })),
+      clearResumeData: () => set({ resumeData: null }),
+    }),
+    {
+      name: "resume-storage", // name of the item in the storage (must be unique)
+    }
+  )
+);

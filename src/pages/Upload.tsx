@@ -94,14 +94,16 @@ const Upload = () => {
         matchedSkills: result.matchedSkills,
         missingSkills: result.missingSkills, // These are effectively recommended skills
         atsSummary: result.summary,
-        atsImprovements: result.improvements
+        atsImprovements: result.improvements,
+        resumeText: result.fullText // Save raw text for Job Matcher
       };
 
       setResumeData(mergedData);
 
       toast({
         title: "Analysis Complete",
-        description: `Your resume scored ${result.score}/100 based on your profile!`,
+        description: `Score: ${result.score}/100. ${result.databaseStatus?.success ? "Saved to Profile!" : "⚠️ Data NOT saved: " + result.databaseStatus?.message}`,
+        variant: result.databaseStatus?.success ? "default" : "destructive"
       });
 
       // Navigate to confirmed interests page (Onboarding) instead of skills directly
@@ -127,6 +129,22 @@ const Upload = () => {
           Upload your resume to analyze your skills and find matching jobs.
         </p>
       </div>
+
+      {/* Persistence Info Banner */}
+      {useResumeStore.getState().resumeData?.fullName && (
+        <div className="glass border-primary/20 bg-primary/5 p-4 rounded-xl mb-6 flex items-center justify-between animate-fade-in">
+          <div className="text-left">
+            <h3 className="font-semibold text-primary">Resume Active</h3>
+            <p className="text-sm text-muted-foreground">
+              Analyzed for <span className="font-bold">{useResumeStore.getState().resumeData?.fullName}</span>.
+              You can proceed to Job Match or upload a new one.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => navigate("/match-job")}>
+            Go to Job Match
+          </Button>
+        </div>
+      )}
 
       {/* Upload Area */}
       <div className={`glass rounded-2xl p-10 text-center transition-all duration-300 animate-fade-in-up ${isDragging ? "border-primary border-2 bg-primary/10" : "border-dashed border-2 border-border"}`} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
