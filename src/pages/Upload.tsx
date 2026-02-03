@@ -104,7 +104,9 @@ const Upload = () => {
         description: `Your resume scored ${result.score}/100 based on your profile!`,
       });
 
-      navigate("/skills");
+      // Navigate to confirmed interests page (Onboarding) instead of skills directly
+      // so user can verify inferred categories.
+      navigate("/onboarding");
     } catch (error) {
       console.error("Analysis failed:", error);
       toast({

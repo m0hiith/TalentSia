@@ -20,7 +20,8 @@ export const CAREER_INTERESTS = [
 const Onboarding = () => {
     const navigate = useNavigate();
     const { resumeData, updateResumeData } = useResumeStore();
-    const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+    // Initialize with existing interests if available (e.g. from resume analysis)
+    const [selectedInterests, setSelectedInterests] = useState<string[]>(resumeData?.interests || []);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     const toggleInterest = (id: string) => {
