@@ -4,6 +4,7 @@ import { Upload as UploadIcon, FileText, X, Loader2, PenTool } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { useResumeStore } from "@/store/resumeStore";
 import { toast } from "@/hooks/use-toast";
+import { analyzeResume } from "@/lib/ats-service";
 const Upload = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -66,19 +67,54 @@ const Upload = () => {
     if (!file) return;
     setIsAnalyzing(true);
 
-    // Simulate analysis delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      // Get current interests from store if available to provide context
+      const currentData = useResumeStore.getState().resumeData || {
+        skills: [],
+        experience_years: 0,
+        education: "",
+        job_titles: []
+      };
 
-    // Mock data
-    const mockData = {
-      skills: ["JavaScript", "React", "Node.js", "CSS", "HTML", "Git", "Python", "SQL"],
-      experience_years: 3,
-      education: "Bachelor's in Computer Science",
-      job_titles: ["Frontend Developer", "Junior Software Engineer"]
-    };
-    setResumeData(mockData);
-    setIsAnalyzing(false);
-    navigate("/skills");
+      const result = await analyzeResume(currentData, file);
+
+      // Merge existing data (like interests) with new analysis
+      const mergedData = {
+        ...currentData,
+        // Update basic info from analysis
+        fullName: result.basicInfo?.fullName || currentData.fullName,
+        email: result.basicInfo?.email || currentData.email,
+        skills: [...new Set([...(currentData.skills || []), ...(result.basicInfo?.skills || [])])],
+        experience_years: result.basicInfo?.experience_years || currentData.experience_years,
+        education: result.basicInfo?.education || currentData.education,
+        job_titles: result.basicInfo?.job_titles || currentData.job_titles,
+
+        // Update analysis results
+        atsScore: result.score,
+        matchedSkills: result.matchedSkills,
+        missingSkills: result.missingSkills, // These are effectively recommended skills
+        atsSummary: result.summary,
+        atsImprovements: result.improvements
+      };
+
+      setResumeData(mergedData);
+
+      toast({
+        title: "Analysis Complete",
+        description: `Your resume scored ${result.score}/100 based on your profile!`,
+      });
+
+      navigate("/skills");
+    } catch (error) {
+      console.error("Analysis failed:", error);
+      toast({
+        title: "Analysis Failed",
+        description: "There was an error analyzing your resume. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
   return <div className="min-h-screen pt-24 pb-16">
     <div className="container mx-auto px-4 max-w-2xl">

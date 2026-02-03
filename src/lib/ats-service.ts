@@ -1,47 +1,31 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import * as pdfjsLib from "pdfjs-dist";
+import mammoth from "mammoth";
 import { ResumeData } from "@/store/resumeStore";
 
-// WEIGHTED SKILL DATABASE
-// 3: Critical (Must Have), 2: Important (Nice to Have), 1: Bonus
-interface SkillWeight {
-    name: string;
-    weight: number;
-}
-
-const SKILL_WEIGHTS: Record<string, SkillWeight[]> = {
-    frontend: [
-        { name: "React", weight: 3 }, { name: "TypeScript", weight: 3 }, { name: "JavaScript", weight: 3 },
-        { name: "HTML", weight: 2 }, { name: "CSS", weight: 2 }, { name: "Tailwind CSS", weight: 2 },
-        { name: "Next.js", weight: 2 }, { name: "Redux", weight: 1 }, { name: "GraphQL", weight: 1 }, { name: "Figma", weight: 1 }
-    ],
-    backend: [
-        { name: "Node.js", weight: 3 }, { name: "Python", weight: 3 }, { name: "SQL", weight: 3 },
-        { name: "Java", weight: 2 }, { name: "PostgreSQL", weight: 2 }, { name: "MongoDB", weight: 2 },
-        { name: "Docker", weight: 2 }, { name: "AWS", weight: 2 }, { name: "Redis", weight: 1 }, { name: "API Design", weight: 1 }
-    ],
-    fullstack: [
-        { name: "React", weight: 3 }, { name: "Node.js", weight: 3 }, { name: "TypeScript", weight: 3 },
-        { name: "SQL", weight: 2 }, { name: "MongoDB", weight: 2 }, { name: "AWS", weight: 2 },
-        { name: "Docker", weight: 2 }, { name: "Next.js", weight: 2 }, { name: "CI/CD", weight: 1 }
-    ],
-    mobile: [
-        { name: "React Native", weight: 3 }, { name: "Swift", weight: 3 }, { name: "Kotlin", weight: 3 },
-        { name: "Flutter", weight: 2 }, { name: "iOS", weight: 2 }, { name: "Android", weight: 2 }, { name: "Firebase", weight: 1 }
-    ],
-    data: [
-        { name: "Python", weight: 3 }, { name: "SQL", weight: 3 }, { name: "Pandas", weight: 2 },
-        { name: "NumPy", weight: 2 }, { name: "Machine Learning", weight: 2 }, { name: "PowerBI", weight: 1 }, { name: "Tableau", weight: 1 }
-    ],
-    marketing: [
-        { name: "SEO", weight: 3 }, { name: "Google Analytics", weight: 3 }, { name: "Content Marketing", weight: 2 },
-        { name: "Social Media", weight: 2 }, { name: "Copywriting", weight: 2 }, { name: "Email Marketing", weight: 1 }, { name: "CRM", weight: 1 }
-    ],
-    design: [
-        { name: "Figma", weight: 3 }, { name: "Adobe XD", weight: 2 }, { name: "Photoshop", weight: 2 },
-        { name: "Illustrator", weight: 2 }, { name: "User Research", weight: 2 }, { name: "Prototyping", weight: 2 }, { name: "Wireframing", weight: 1 }
-    ],
+// Initialize Gemini
+// Note: This requires VITE_GEMINI_API_KEY in .env
+const getGenAI = () => {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    if (!apiKey) {
+        console.error("VITE_GEMINI_API_KEY is missing in .env");
+        return null;
+    }
+    return new GoogleGenerativeAI(apiKey);
 };
 
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+
 export interface ATSResult {
+    basicInfo: {
+        fullName?: string;
+        email?: string;
+        skills: string[];
+        experience_years: number;
+        education: string;
+        job_titles: string[];
+    };
     score: number;
     matchedSkills: string[];
     missingSkills: string[];
@@ -51,86 +35,192 @@ export interface ATSResult {
         experienceScore: number;
         roleScore: number;
     };
+    summary: string; // New field for the final verdict
+    improvements: string[]; // for suggestions
 }
 
-export const analyzeResume = async (resume: ResumeData): Promise<ATSResult> => {
-    // Simulate network delay for "Analysis" feel
-    await new Promise(resolve => setTimeout(resolve, 1500));
+// Helper: Extract text from PDF
+const extractTextFromPdf = async (file: File): Promise<string> => {
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let fullText = "";
 
-    const userSkills = resume.skills.map(s => s.toLowerCase());
-    const userInterests = resume.interests || [];
+        for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map((item: any) => item.str).join(" ");
+            fullText += pageText + "\n";
+        }
+        return fullText;
+    } catch (error) {
+        console.error("Error extracting PDF text:", error);
+        throw new Error("Failed to extract text from PDF");
+    }
+};
 
-    if (userInterests.length === 0) {
-        return { score: 0, matchedSkills: [], missingSkills: [], recommendedSkills: [], details: { skillScore: 0, experienceScore: 0, roleScore: 0 } };
+// Helper: Extract text from DOCX
+const extractTextFromDocx = async (file: File): Promise<string> => {
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        return result.value;
+    } catch (error) {
+        console.error("Error extracting DOCX text:", error);
+        throw new Error("Failed to extract text from DOCX");
+    }
+};
+
+// Old interface compatibility adapter
+// The UI likely expects these precise fields.
+// We will ask Gemini to JSON output in this structure.
+const GENERATION_CONFIG = {
+    temperature: 0.4,
+    topK: 32,
+    topP: 1,
+    maxOutputTokens: 4096,
+};
+
+export const analyzeResume = async (resume: ResumeData, file?: File): Promise<ATSResult> => {
+    // If no file is provided (e.g. only manual data), fallback to previous logic or simple string dump
+    // But strictly, for this new logic, we prefer the file.
+    // If the user hasn't selected a file but has filled out the form, we can try to construct a "text" representation.
+
+    let resumeText = "";
+
+    if (file) {
+        const ext = file.name.split(".").pop()?.toLowerCase();
+        if (ext === "pdf") {
+            resumeText = await extractTextFromPdf(file);
+        } else if (ext === "docx") {
+            resumeText = await extractTextFromDocx(file);
+        } else {
+            // Fallback or error?
+            console.warn("Unsupported file type, trying text extraction anyway", ext);
+        }
     }
 
-    // 1. Calculate Skill Score (60% of Total)
-    let totalPossibleWeight = 0;
-    let userEarnedWeight = 0;
-    const matchedSkills = new Set<string>();
-    const missingSkillsSet = new Set<string>();
+    // If we couldn't get text from file (or no file), use the structured data
+    if (!resumeText.trim()) {
+        resumeText = `
+      Skills: ${resume.skills.join(", ")}
+      Experience Years: ${resume.experience_years}
+      Job Titles: ${resume.job_titles?.join(", ")}
+      Interests: ${resume.interests?.join(", ")}
+      `;
+    }
 
-    userInterests.forEach(interestId => {
-        const skills = SKILL_WEIGHTS[interestId];
-        if (skills) {
-            skills.forEach(skill => {
-                totalPossibleWeight += skill.weight;
-                const isMatched = userSkills.some(userSkill =>
-                    userSkill.includes(skill.name.toLowerCase()) || skill.name.toLowerCase().includes(userSkill)
-                );
+    const genAI = getGenAI();
+    if (!genAI) {
+        // Return a dummy failure object if API key is missing
+        return {
+            basicInfo: {
+                fullName: "Error",
+                email: "",
+                skills: [],
+                experience_years: 0,
+                education: "Error",
+                job_titles: []
+            },
+            score: 0,
+            matchedSkills: [],
+            missingSkills: ["API Key Missing"],
+            recommendedSkills: [],
+            details: { skillScore: 0, experienceScore: 0, roleScore: 0 },
+            summary: "Please add VITE_GEMINI_API_KEY to your .env file.",
+            improvements: []
+        };
+    }
 
-                if (isMatched) {
-                    userEarnedWeight += skill.weight;
-                    matchedSkills.add(skill.name);
-                } else {
-                    missingSkillsSet.add(skill.name);
-                }
-            });
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest", generationConfig: GENERATION_CONFIG });
+
+    // We can inject a "Job Description" if one existed in the state, but the current analyzeResume signature 
+    // only takes ResumeData. We might need to assume the "Interests" act as the target role context.
+    const targetRole = resume.interests?.join(", ") || "General Software Engineering";
+
+    const prompt = `
+    You are an expert ATS (Applicant Tracking System) resume analyzer.
+    
+    Your task is to analyze the following resume text against the target role(s): "${targetRole}".
+    
+    Output a strictly valid JSON object. Do not include any markdown formatting (like \`\`\`json).
+    The JSON must match this structure EXACTLY:
+    
+    {
+        "basicInfo": {
+            "fullName": "Extracted Name or 'Candidate'",
+            "email": "Extracted Email or null",
+            "skills": ["Extracted Skill 1", "Extracted Skill 2"],
+            "experience_years": number (total years of experience),
+            "education": "Highest Degree / Major",
+            "job_titles": ["Most Critical Job Title 1", "Most Critical Job Title 2"]
+        },
+        "score": number (0-100),
+        "matchedSkills": ["skill from resume that matches target role"],
+        "missingSkills": ["important skill for target role missing in resume"],
+        "recommendedSkills": ["skill recommended to learn"],
+        "details": {
+            "skillScore": number (0-100),
+            "experienceScore": number (0-100),
+            "roleScore": number (0-100)
+        },
+        "summary": "A concise 2-3 sentence summary of the candidate's fit.",
+        "improvements": ["Actionable improvement 1", "Actionable improvement 2", "Actionable improvement 3"]
+    }
+
+    Resume Text:
+    ${resumeText}
+    `;
+
+    try {
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        let text = response.text();
+
+        // Clean up markdown code blocks if present (just in case)
+        text = text.replace(/```json/g, "").replace(/```/g, "").trim();
+
+        // Attempt to parse JSON
+        const parsed: ATSResult = JSON.parse(text);
+
+        // Basic validation to ensure required fields exist
+        if (typeof parsed.score !== 'number') parsed.score = 50;
+        if (!parsed.basicInfo) {
+            parsed.basicInfo = {
+                fullName: "Candidate",
+                email: "",
+                skills: [],
+                experience_years: 0,
+                education: "Not Specified",
+                job_titles: []
+            };
         }
-    });
+        if (!Array.isArray(parsed.matchedSkills)) parsed.matchedSkills = [];
+        if (!Array.isArray(parsed.missingSkills)) parsed.missingSkills = [];
+        if (!parsed.details) parsed.details = { skillScore: 0, experienceScore: 0, roleScore: 0 };
 
-    const skillScoreRaw = totalPossibleWeight > 0 ? (userEarnedWeight / totalPossibleWeight) * 100 : 0;
-    const weightedSkillScore = skillScoreRaw * 0.6; // 60% Weight
+        return parsed;
 
-    // 2. Calculate Experience Score (20% of Total)
-    // Heuristic: 0-1 yr = Junior (40%), 1-3 yrs = Mid (70%), 3-5 yrs = Senior (90%), 5+ = Expert (100%)
-    const years = resume.experience_years || 0;
-    let experienceScoreRaw = 0;
-    if (years < 1) experienceScoreRaw = 40;
-    else if (years < 3) experienceScoreRaw = 70;
-    else if (years < 5) experienceScoreRaw = 90;
-    else experienceScoreRaw = 100;
+    } catch (error: any) {
+        console.error("Gemini Analysis Failed:", error);
+        console.error("Error details:", error.message || error.toString());
 
-    const weightedExperienceScore = experienceScoreRaw * 0.2; // 20% Weight
-
-    // 3. Calculate Role/Title Score (20% of Total)
-    // Check if any previous job title matches the interest keywords
-    let roleScoreRaw = 0;
-    const jobTitles = resume.job_titles || [];
-    const interestKeywords = userInterests.join(" ").toLowerCase().split(" "); // e.g., ["frontend", "development"]
-
-    const hasRelevantRole = jobTitles.some(title =>
-        interestKeywords.some(keyword => title.toLowerCase().includes(keyword))
-    );
-
-    if (hasRelevantRole) roleScoreRaw = 100;
-    else if (jobTitles.length > 0) roleScoreRaw = 50; // Has work exp but not exact title match
-    else roleScoreRaw = 0; // No work exp
-
-    const weightedRoleScore = roleScoreRaw * 0.2; // 20% Weight
-
-    // Final Total Score
-    const totalScore = Math.round(weightedSkillScore + weightedExperienceScore + weightedRoleScore);
-
-    return {
-        score: Math.min(100, totalScore),
-        matchedSkills: Array.from(matchedSkills),
-        missingSkills: Array.from(missingSkillsSet),
-        recommendedSkills: Array.from(missingSkillsSet).slice(0, 5), // Top 5 missing
-        details: {
-            skillScore: Math.round(skillScoreRaw),
-            experienceScore: Math.round(experienceScoreRaw),
-            roleScore: Math.round(roleScoreRaw)
-        }
-    };
+        return {
+            basicInfo: {
+                fullName: "Error",
+                email: "",
+                skills: [],
+                experience_years: 0,
+                education: "Error",
+                job_titles: []
+            },
+            score: 0,
+            matchedSkills: [],
+            missingSkills: ["Analysis Failed: " + (error.message ? error.message.slice(0, 50) : "Unknown Error")],
+            recommendedSkills: [],
+            details: { skillScore: 0, experienceScore: 0, roleScore: 0 },
+            summary: "Failed to analyze resume. Technical details: " + (error.message || "Unknown error"),
+            improvements: ["Verify API Key", "Check internet connection", "Try a different file format"]
+        };
+    }
 };

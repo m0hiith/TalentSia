@@ -21,7 +21,9 @@ const Skills = () => {
         updateResumeData({
           atsScore: result.score,
           matchedSkills: result.matchedSkills,
-          missingSkills: result.missingSkills
+          missingSkills: result.missingSkills,
+          atsSummary: result.summary,
+          atsImprovements: result.improvements
         });
       }
       setLoading(false);
@@ -110,9 +112,46 @@ const Skills = () => {
         </div>
       </div>
 
+      {/* AI Insights and Improvements */}
+      {(resumeData.atsSummary || resumeData.atsImprovements?.length > 0) && (
+        <div className="grid md:grid-cols-1 gap-6 mb-10 animate-fade-in-up" style={{ animationDelay: "450ms" }}>
+          <div className="glass rounded-xl p-8 border-primary/20 bg-primary/5">
+            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+              <Info className="w-6 h-6 text-primary" />
+              AI Analysis & Recommendations
+            </h2>
+
+            {resumeData.atsSummary && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-2 text-primary">Verdict</h3>
+                <p className="text-muted-foreground leading-relaxed italic">
+                  "{resumeData.atsSummary}"
+                </p>
+              </div>
+            )}
+
+            {resumeData.atsImprovements && resumeData.atsImprovements.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-primary">Actionable Improvements</h3>
+                <ul className="space-y-3">
+                  {resumeData.atsImprovements.map((improvement: string, idx: number) => (
+                    <li key={idx} className="flex gap-3 text-muted-foreground">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
+                        {idx + 1}
+                      </span>
+                      {improvement}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Matched Skills */}
       <div className="grid md:grid-cols-2 gap-6 animate-fade-in-up" style={{
-        animationDelay: "400ms"
+        animationDelay: "500ms"
       }}>
         <div className="glass rounded-xl p-6">
           <div className="flex items-center gap-2 mb-4">

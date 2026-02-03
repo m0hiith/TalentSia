@@ -26,6 +26,8 @@ export interface ResumeData {
   atsScore?: number;
   matchedSkills?: string[];
   missingSkills?: string[];
+  atsSummary?: string;
+  atsImprovements?: string[];
 }
 
 interface ResumeStore {
