@@ -123,8 +123,7 @@ const Upload = () => {
   return <div className="min-h-screen pt-24 pb-16">
     <div className="container mx-auto px-4 max-w-2xl">
       <div className="text-center mb-10 animate-fade-in">
-        <h1 className="text-3xl md:text-4xl font-bold mb-4">Upload Your Resume ​<span className="text-gradient text-primary-foreground bg-primary-foreground">​</span>
-        </h1>
+        <h1 className="text-3xl md:text-4xl font-bold mb-4">Upload Your Resume</h1>
         <p className="text-lg text-muted-foreground">
           Upload your resume to analyze your skills and find matching jobs.
         </p>
@@ -137,11 +136,11 @@ const Upload = () => {
             <h3 className="font-semibold text-primary">Resume Active</h3>
             <p className="text-sm text-muted-foreground">
               Analyzed for <span className="font-bold">{useResumeStore.getState().resumeData?.fullName}</span>.
-              You can proceed to Job Match or upload a new one.
+              You can proceed to browse jobs or upload a new one.
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => navigate("/match-job")}>
-            Go to Job Match
+          <Button variant="outline" size="sm" onClick={() => navigate("/jobs")}>
+            Find Jobs
           </Button>
         </div>
       )}

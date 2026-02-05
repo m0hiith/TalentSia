@@ -143,9 +143,11 @@ export const analyzeResume = async (resume: ResumeData, file?: File): Promise<AT
     const targetRole = resume.interests?.join(", ") || "General Software Engineering";
 
     const prompt = `
-    You are an expert ATS (Applicant Tracking System) resume analyzer.
+    You are a friendly career coach and ATS (Applicant Tracking System) expert helping a job seeker improve their resume.
     
     Your task is to analyze the following resume text against the target role(s): "${targetRole}".
+    
+    IMPORTANT: Write your feedback in a warm, encouraging, and personalized tone. Address the candidate directly using "you" and "your". Be specific and actionable. Avoid generic phrases.
     
     Output a strictly valid JSON object. Do not include any markdown formatting (like \`\`\`json).
     The JSON must match this structure EXACTLY:
@@ -168,9 +170,18 @@ export const analyzeResume = async (resume: ResumeData, file?: File): Promise<AT
             "experienceScore": number (0-100),
             "roleScore": number (0-100)
         },
-        "summary": "A concise 2-3 sentence summary of the candidate's fit.",
-        "improvements": ["Actionable improvement 1", "Actionable improvement 2", "Actionable improvement 3"]
+        "summary": "A personalized 2-3 sentence summary written TO the candidate. Start with something like 'Great job!' or 'Your resume shows...' and address them directly. Be encouraging but honest about areas to improve.",
+        "improvements": [
+            "Start each improvement with 'You should...' or 'Consider...' or 'Try adding...' - be specific and actionable",
+            "Second personalized improvement tip addressing the candidate directly",
+            "Third personalized improvement tip with specific examples when possible"
+        ]
     }
+
+    Remember: 
+    - All text in "summary" and "improvements" should feel like a coach talking TO the candidate, not about them
+    - Use encouraging language like "You've done well with...", "Your experience in X is valuable...", "To stand out more, you could..."
+    - Be specific - mention actual skills or experiences from their resume when giving feedback
 
     Resume Text:
     ${resumeText}

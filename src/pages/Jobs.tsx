@@ -1,141 +1,182 @@
 import { useState, useMemo, useEffect } from "react";
-import { Search, MapPin, DollarSign, Filter } from "lucide-react";
+import { Search, MapPin, DollarSign, Filter, Bookmark, BookmarkCheck, Check, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useResumeStore } from "@/store/resumeStore";
+import { useSavedJobsStore } from "@/store/savedJobsStore";
+import { useApplicationsStore } from "@/store/applicationsStore";
 import { toast } from "@/hooks/use-toast";
-import { Check, X } from "lucide-react";
+import { searchJobs, Job } from "@/lib/adzuna-service";
 
-interface Job {
-  id: number;
-  title: string;
-  company: string;
-  location: string;
-  salary: string;
-  skills: string[];
-  description: string;
-  // Dynamic fields
-  match?: number;
-}
-
-// Expanded Mock Job Database
-const MOCK_JOBS_DB: Job[] = [
+// Fallback Mock Data (used when API fails)
+const MOCK_JOBS: Job[] = [
   {
-    id: 1,
-    title: "Senior Frontend Developer",
-    company: "Google",
-    location: "Remote",
-    salary: "$140k-$180k",
-    skills: ["React", "TypeScript", "GraphQL", "AWS"],
-    description: "We are looking for a talented Senior Frontend Developer..."
+    id: "mock-1",
+    title: "Senior React Developer",
+    company: "TechCorp India",
+    location: "Bangalore, India",
+    salary: "₹15L - ₹25L",
+    skills: ["React", "TypeScript", "Node.js", "AWS"],
+    description: "We are looking for a Senior React Developer to join our team.",
+    url: "https://example.com/jobs/1"
   },
   {
-    id: 2,
-    title: "Full Stack Engineer",
-    company: "Amazon",
-    location: "Seattle, WA",
-    salary: "$130k-$170k",
-    skills: ["Node.js", "React", "Docker", "MongoDB", "AWS"],
-    description: "We are looking for a talented Full Stack Engineer..."
+    id: "mock-2",
+    title: "Full Stack Developer",
+    company: "StartupHub",
+    location: "Hyderabad, India",
+    salary: "₹10L - ₹18L",
+    skills: ["React", "Python", "MongoDB", "Docker"],
+    description: "Join our fast-growing startup as a Full Stack Developer.",
+    url: "https://example.com/jobs/2"
   },
   {
-    id: 3,
-    title: "Backend Developer",
-    company: "Microsoft",
-    location: "Remote",
-    salary: "$120k-$160k",
-    skills: ["Python", "AWS", "Docker", "Redis", "SQL"],
-    description: "We are looking for a talented Backend Developer..."
-  },
-  {
-    id: 4,
+    id: "mock-3",
     title: "Frontend Engineer",
-    company: "Meta",
-    location: "Menlo Park, CA",
-    salary: "$135k-$175k",
-    skills: ["React", "TypeScript", "CSS", "GraphQL", "Figma"],
-    description: "We are looking for a talented Frontend Engineer..."
+    company: "Digital Solutions",
+    location: "Remote",
+    salary: "₹12L - ₹20L",
+    skills: ["JavaScript", "React", "CSS", "Redux"],
+    description: "Build amazing user experiences as a Frontend Engineer.",
+    url: "https://example.com/jobs/3"
   },
   {
-    id: 5,
+    id: "mock-4",
+    title: "Backend Developer",
+    company: "CloudTech",
+    location: "Mumbai, India",
+    salary: "₹14L - ₹22L",
+    skills: ["Node.js", "Python", "PostgreSQL", "AWS"],
+    description: "Design and build scalable backend systems.",
+    url: "https://example.com/jobs/4"
+  },
+  {
+    id: "mock-5",
     title: "DevOps Engineer",
-    company: "Netflix",
-    location: "Remote",
-    salary: "$145k-$190k",
-    skills: ["Docker", "Kubernetes", "CI/CD", "AWS", "Python"],
-    description: "We are looking for a talented DevOps Engineer..."
+    company: "InfraTech",
+    location: "Pune, India",
+    salary: "₹16L - ₹28L",
+    skills: ["Docker", "Kubernetes", "AWS", "CI/CD"],
+    description: "Manage our cloud infrastructure and deployment pipelines.",
+    url: "https://example.com/jobs/5"
   },
   {
-    id: 6,
-    title: "Junior React Developer",
-    company: "Shopify",
-    location: "Remote",
-    salary: "$75k-$100k",
-    skills: ["React", "JavaScript", "HTML", "CSS"],
-    description: "We are looking for a talented Junior React Developer..."
-  },
-  {
-    id: 7,
+    id: "mock-6",
     title: "Data Scientist",
-    company: "Spotify",
-    location: "New York, NY",
-    salary: "$130k-$160k",
-    skills: ["Python", "Machine Learning", "SQL", "Pandas"],
-    description: "Analyze vast amounts of data to improve user experience..."
-  },
-  {
-    id: 8,
-    title: "Mobile Developer (iOS)",
-    company: "Apple",
-    location: "Cupertino, CA",
-    salary: "$140k-$190k",
-    skills: ["Swift", "iOS", "React Native"],
-    description: "Build the next generation of iOS apps..."
-  },
-  {
-    id: 9,
-    title: "Digital Marketing Specialist",
-    company: "HubSpot",
-    location: "Remote",
-    salary: "$80k-$110k",
-    skills: ["SEO", "Content Marketing", "Social Media", "Google Analytics"],
-    description: "Drive growth through innovative marketing campaigns..."
+    company: "AI Labs",
+    location: "Bangalore, India",
+    salary: "₹18L - ₹35L",
+    skills: ["Python", "Machine Learning", "TensorFlow", "SQL"],
+    description: "Apply ML techniques to solve real-world problems.",
+    url: "https://example.com/jobs/6"
   }
 ];
 
 const Jobs = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
   const [sortBy, setSortBy] = useState("match-desc");
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isUsingMockData, setIsUsingMockData] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalJobs, setTotalJobs] = useState(0);
 
   const resumeData = useResumeStore(state => state.resumeData);
+  const { saveJob, unsaveJob, isJobSaved } = useSavedJobsStore();
+  const { addApplication, getApplicationByJobId } = useApplicationsStore();
+
   const userSkillsLower = resumeData?.skills.map(s => s.toLowerCase()) || [];
+
+  // Fetch jobs from Adzuna API
+  const fetchJobs = async (query?: string, location?: string, page: number = 1) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Build search query based on user interests/skills if no query provided
+      let searchTerm = query || "";
+      if (!searchTerm && resumeData?.interests?.[0]) {
+        searchTerm = resumeData.interests[0];
+      }
+      if (!searchTerm) {
+        searchTerm = "software developer"; // Default search
+      }
+
+      const result = await searchJobs({
+        query: searchTerm,
+        location: location || "",
+        page,
+        resultsPerPage: 12
+      });
+
+      if (result.error || result.jobs.length === 0) {
+        console.log("Using mock data due to:", result.error || "No results");
+        setJobs(MOCK_JOBS);
+        setTotalJobs(MOCK_JOBS.length);
+        setIsUsingMockData(true);
+        if (result.error) {
+          toast({
+            title: "Using sample jobs",
+            description: "Couldn't connect to job API. Showing sample listings.",
+            variant: "default"
+          });
+        }
+      } else {
+        setJobs(result.jobs);
+        setTotalJobs(result.total);
+        setIsUsingMockData(false);
+      }
+    } catch (err) {
+      console.error("Failed to fetch jobs:", err);
+      setJobs(MOCK_JOBS);
+      setTotalJobs(MOCK_JOBS.length);
+      setIsUsingMockData(true);
+      setError("Failed to load jobs");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  // Search handler
+  const handleSearch = () => {
+    setCurrentPage(1);
+    fetchJobs(searchQuery, locationFilter, 1);
+  };
+
+  // Refresh jobs
+  const handleRefresh = () => {
+    fetchJobs(searchQuery, locationFilter, currentPage);
+  };
 
   // Calculate matches dynamically based on user profile
   const jobsWithMatch = useMemo(() => {
-    return MOCK_JOBS_DB.map(job => {
+    return jobs.map(job => {
       if (!resumeData) return { ...job, match: 0 };
 
       // 1. Skill Match (60%)
       const jobSkills = job.skills.map(s => s.toLowerCase());
-      const userSkills = userSkillsLower;
-      const matchedSkills = jobSkills.filter(js => userSkills.some(us => us.includes(js) || js.includes(us)));
+      const matchedSkills = jobSkills.filter(js => userSkillsLower.some(us => us.includes(js) || js.includes(us)));
       const skillScore = (matchedSkills.length / Math.max(jobSkills.length, 1)) * 100;
       const weightedSkillScore = skillScore * 0.6;
 
       // 2. Experience Match (20%)
-      // Heuristic: If user has >= 3 years, they get full points for most mid-level logic
-      // Ideally we'd have a 'required_years' in the job, but we'll infer it or use a standard
       const userYears = resumeData.experience_years || 0;
       let experienceScore = 0;
       if (job.title.toLowerCase().includes("senior")) {
         experienceScore = userYears >= 5 ? 100 : (userYears / 5) * 100;
       } else if (job.title.toLowerCase().includes("junior") || job.title.toLowerCase().includes("intern")) {
-        experienceScore = userYears >= 0 ? 100 : 50; // Everyone qualifies for junior
+        experienceScore = userYears >= 0 ? 100 : 50;
       } else {
-        // Mid level
         experienceScore = userYears >= 2 ? 100 : (userYears / 2) * 100;
       }
       const weightedExperienceScore = experienceScore * 0.2;
@@ -153,32 +194,29 @@ const Jobs = () => {
 
       return { ...job, match: Math.min(100, totalScore) };
     });
-  }, [resumeData, userSkillsLower]);
+  }, [jobs, resumeData, userSkillsLower]);
 
   const filteredAndSortedJobs = useMemo(() => {
-    let jobs = jobsWithMatch.filter(job =>
-      job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.skills.some(skill => skill.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
+    let filtered = jobsWithMatch;
 
     switch (sortBy) {
       case "match-desc":
-        jobs.sort((a, b) => (b.match || 0) - (a.match || 0));
+        filtered.sort((a, b) => (b.match || 0) - (a.match || 0));
         break;
       case "salary-desc":
-        jobs.sort((a, b) => {
-          const aMax = parseInt(a.salary.replace(/\D/g, "").slice(-3));
-          const bMax = parseInt(b.salary.replace(/\D/g, "").slice(-3));
-          return bMax - aMax;
+        // Sort by salary (extract number from string)
+        filtered.sort((a, b) => {
+          const aMatch = a.salary.match(/\d+/);
+          const bMatch = b.salary.match(/\d+/);
+          return (bMatch ? parseInt(bMatch[0]) : 0) - (aMatch ? parseInt(aMatch[0]) : 0);
         });
         break;
       case "title-asc":
-        jobs.sort((a, b) => a.title.localeCompare(b.title));
+        filtered.sort((a, b) => a.title.localeCompare(b.title));
         break;
     }
-    return jobs;
-  }, [jobsWithMatch, searchQuery, sortBy]);
+    return filtered;
+  }, [jobsWithMatch, sortBy]);
 
   const getMatchColor = (match: number) => {
     if (match >= 70) return "bg-success/20 text-success border-success/30";
@@ -186,33 +224,111 @@ const Jobs = () => {
     return "bg-destructive/20 text-destructive border-destructive/30";
   };
 
-  const handleApply = () => {
+  const handleToggleSave = (job: Job, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (isJobSaved(job.id)) {
+      unsaveJob(job.id);
+      toast({ title: "Removed from saved jobs", description: job.title });
+    } else {
+      saveJob({
+        id: job.id,
+        title: job.title,
+        company: job.company,
+        location: job.location,
+        salary: job.salary,
+        skills: job.skills,
+        description: job.description,
+        url: job.url,
+        match: job.match,
+      });
+      toast({ title: "Job saved!", description: `${job.title} added to saved jobs.` });
+    }
+  };
+
+  const handleApply = (job: Job) => {
+    const existingApp = getApplicationByJobId(job.id);
+    if (existingApp) {
+      toast({
+        title: "Already applied",
+        description: `You've already applied to ${job.title}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    addApplication({
+      jobId: job.id,
+      title: job.title,
+      company: job.company,
+      location: job.location,
+      salary: job.salary,
+      status: "applied",
+      notes: "",
+      url: job.url,
+    });
+
     toast({
       title: "Application submitted!",
-      description: "Your application has been sent to the employer."
+      description: `${job.title} at ${job.company} added to your applications.`,
     });
+
+    // Open job URL in new tab
+    if (job.url) {
+      window.open(job.url, "_blank");
+    }
+
     setSelectedJob(null);
   };
 
-  return <div className="min-h-screen pt-24 pb-16">
-    <div className="container mx-auto px-4 max-w-6xl">
-      <div className="text-center mb-10 animate-fade-in">
-        <h1 className="text-3xl md:text-4xl font-bold mb-4">
-          Find Your Dream Job   <span className="text-gradient text-primary-foreground">​ </span>
-        </h1>
-        <p className="text-lg text-muted-foreground">
-          {resumeData ? "Discover opportunities tailored to your profile" : "Browse open positions"}
-        </p>
-      </div>
+  return (
+    <div className="min-h-screen pt-24 pb-16">
+      <div className="container mx-auto px-4 max-w-6xl">
+        <div className="text-center mb-10 animate-fade-in">
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">
+            Find Your Dream Job 🚀
+          </h1>
+          <p className="text-lg text-muted-foreground">
+            {resumeData ? "Discover opportunities tailored to your profile" : "Browse open positions"}
+          </p>
+          {isUsingMockData && (
+            <p className="text-sm text-warning mt-2">
+              Showing sample jobs. Real-time jobs coming soon!
+            </p>
+          )}
+        </div>
 
-      {/* Filters */}
-      <div className="glass rounded-xl p-4 mb-8 animate-fade-in-up">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <Input placeholder="Search by title, company, or skill..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10 bg-secondary/50 border-border" />
+        {/* Search & Filters */}
+        <div className="glass rounded-xl p-4 mb-8 animate-fade-in-up">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Input
+                placeholder="Search by job title, skills..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleSearch()}
+                className="pl-10 bg-secondary/50 border-border"
+              />
+            </div>
+            <div className="relative flex-1 md:max-w-[200px]">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Input
+                placeholder="Location"
+                value={locationFilter}
+                onChange={e => setLocationFilter(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleSearch()}
+                className="pl-10 bg-secondary/50 border-border"
+              />
+            </div>
+            <Button onClick={handleSearch} className="gradient-primary">
+              <Search className="w-4 h-4 mr-2" />
+              Search
+            </Button>
+            <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isLoading}>
+              <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+            </Button>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mt-4">
             <Filter className="w-5 h-5 text-muted-foreground" />
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-[180px] bg-secondary/50">
@@ -224,126 +340,192 @@ const Jobs = () => {
                 <SelectItem value="title-asc">Title (A-Z)</SelectItem>
               </SelectContent>
             </Select>
+            <span className="text-sm text-muted-foreground ml-4">
+              {totalJobs > 0 ? `${totalJobs.toLocaleString()} jobs found` : ""}
+            </span>
           </div>
         </div>
-      </div>
 
-      {/* Job Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredAndSortedJobs.map((job, index) => <div key={job.id} className="glass glass-hover rounded-xl p-6 animate-fade-in-up flex flex-col" style={{
-          animationDelay: `${index * 50}ms`
-        }}>
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-bold text-foreground mb-1">{job.title}</h3>
-              <p className="text-primary font-medium">{job.company}</p>
-            </div>
-            {resumeData && (
-              <span className={`px-2 py-1 rounded-full text-xs font-bold border ${getMatchColor(job.match || 0)}`}>
-                {job.match}% Match
-              </span>
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
+            <p className="text-muted-foreground">Searching for jobs...</p>
+          </div>
+        )}
+
+        {/* Job Grid */}
+        {!isLoading && (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredAndSortedJobs.map((job, index) => (
+              <div
+                key={job.id}
+                className="glass glass-hover rounded-xl p-6 animate-fade-in-up flex flex-col cursor-pointer"
+                style={{ animationDelay: `${index * 50}ms` }}
+                onClick={() => setSelectedJob(job)}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1 pr-2">
+                    <h3 className="text-lg font-bold text-foreground mb-1 line-clamp-2">{job.title}</h3>
+                    <p className="text-primary font-medium">{job.company}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {resumeData && (
+                      <span className={`px-2 py-1 rounded-full text-xs font-bold border ${getMatchColor(job.match || 0)}`}>
+                        {job.match}%
+                      </span>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e) => handleToggleSave(job, e)}
+                    >
+                      {isJobSaved(job.id) ? (
+                        <BookmarkCheck className="w-5 h-5 text-primary" />
+                      ) : (
+                        <Bookmark className="w-5 h-5" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2 mb-4 flex-1">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <MapPin className="w-4 h-4" />
+                    <span className="line-clamp-1">{job.location}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <DollarSign className="w-4 h-4" />
+                    <span>{job.salary}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {job.skills.slice(0, 4).map(skill => {
+                    const isMatch = userSkillsLower.some(us => us.includes(skill.toLowerCase()) || skill.toLowerCase().includes(us));
+                    return (
+                      <span
+                        key={skill}
+                        className={`px-2 py-1 rounded-full text-xs ${isMatch
+                            ? "bg-success/20 text-success"
+                            : "bg-secondary text-muted-foreground"
+                          }`}
+                      >
+                        {skill}
+                      </span>
+                    );
+                  })}
+                  {job.skills.length > 4 && (
+                    <span className="px-2 py-1 text-xs text-muted-foreground">
+                      +{job.skills.length - 4} more
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex gap-2 mt-auto">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={(e) => { e.stopPropagation(); setSelectedJob(job); }}>
+                    View Details
+                  </Button>
+                  <Button size="sm" className="flex-1 gradient-primary" onClick={(e) => { e.stopPropagation(); handleApply(job); }}>
+                    Apply Now
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && filteredAndSortedJobs.length === 0 && (
+          <div className="text-center py-20">
+            <p className="text-muted-foreground mb-4">No jobs found matching your criteria.</p>
+            <Button onClick={() => { setSearchQuery(""); setLocationFilter(""); fetchJobs(); }}>
+              Clear filters
+            </Button>
+          </div>
+        )}
+
+        {/* Job Detail Modal */}
+        <Dialog open={!!selectedJob} onOpenChange={() => setSelectedJob(null)}>
+          <DialogContent className="glass max-w-2xl max-h-[80vh] overflow-y-auto">
+            {selectedJob && (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="text-2xl">{selectedJob.title}</DialogTitle>
+                  <p className="text-primary font-medium text-lg">{selectedJob.company}</p>
+                </DialogHeader>
+
+                <div className="space-y-6 mt-4">
+                  <div className="flex flex-wrap gap-4">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <MapPin className="w-5 h-5" />
+                      <span>{selectedJob.location}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <DollarSign className="w-5 h-5" />
+                      <span>{selectedJob.salary}</span>
+                    </div>
+                    {resumeData && (
+                      <span className={`px-3 py-1 rounded-full text-sm font-bold border ${getMatchColor(selectedJob.match || 0)}`}>
+                        {selectedJob.match}% Match
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2">Skills Required</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedJob.skills.map(skill => {
+                        const isMatch = userSkillsLower.some(us => us.includes(skill.toLowerCase()) || skill.toLowerCase().includes(us));
+                        return (
+                          <span
+                            key={skill}
+                            className={`px-3 py-1.5 rounded-full text-sm ${isMatch
+                                ? "bg-success/20 text-success border border-success/30"
+                                : "bg-secondary text-muted-foreground"
+                              }`}
+                          >
+                            {isMatch && <Check className="w-3 h-3 inline mr-1" />}
+                            {skill}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2">Job Description</h4>
+                    <p className="text-muted-foreground whitespace-pre-line">{selectedJob.description}</p>
+                  </div>
+
+                  <div className="flex gap-4 pt-4 border-t border-border">
+                    <Button variant="outline" className="flex-1" onClick={() => handleToggleSave(selectedJob)}>
+                      {isJobSaved(selectedJob.id) ? (
+                        <>
+                          <BookmarkCheck className="w-4 h-4 mr-2" />
+                          Saved
+                        </>
+                      ) : (
+                        <>
+                          <Bookmark className="w-4 h-4 mr-2" />
+                          Save Job
+                        </>
+                      )}
+                    </Button>
+                    <Button className="flex-1 gradient-primary" onClick={() => handleApply(selectedJob)}>
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      Apply Now
+                    </Button>
+                  </div>
+                </div>
+              </>
             )}
-          </div>
-
-          <div className="space-y-2 mb-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4" />
-              <span>{job.location}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4" />
-              <span>{job.salary}</span>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-1.5 mb-6">
-            {job.skills.slice(0, 4).map(skill => <span key={skill} className="px-2 py-0.5 bg-secondary text-secondary-foreground rounded text-xs">
-              {skill}
-            </span>)}
-            {job.skills.length > 4 && <span className="text-xs text-muted-foreground">+{job.skills.length - 4} more</span>}
-          </div>
-
-          <div className="flex gap-2 mt-auto">
-            <Button variant="outline" className="flex-1" onClick={() => setSelectedJob(job)}>
-              View Details
-            </Button>
-            <Button className="flex-1 gradient-primary hover:opacity-90" onClick={handleApply}>
-              Apply Now
-            </Button>
-          </div>
-        </div>)}
+          </DialogContent>
+        </Dialog>
       </div>
-
-      {filteredAndSortedJobs.length === 0 && <div className="text-center py-16 glass rounded-xl">
-        <p className="text-xl text-muted-foreground">No jobs found matching your search.</p>
-      </div>}
     </div>
-
-    {/* Job Detail Modal */}
-    <Dialog open={!!selectedJob} onOpenChange={() => setSelectedJob(null)}>
-      <DialogContent className="max-w-2xl glass border-border">
-        {selectedJob && <>
-          <DialogHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <DialogTitle className="text-2xl mb-1">{selectedJob.title}</DialogTitle>
-                <p className="text-primary font-medium text-lg">{selectedJob.company}</p>
-              </div>
-              {resumeData && (
-                <span className={`px-3 py-1.5 rounded-full text-sm font-bold border ${getMatchColor(selectedJob.match || 0)}`}>
-                  {selectedJob.match}% Match
-                </span>
-              )}
-            </div>
-          </DialogHeader>
-
-          <div className="space-y-6 mt-4">
-            <div className="flex flex-wrap gap-4 text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                <span>{selectedJob.location}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <DollarSign className="w-4 h-4" />
-                <span>{selectedJob.salary}</span>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-2">Job Description</h4>
-              <p className="text-muted-foreground leading-relaxed">{selectedJob.description}</p>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-3">Required Skills</h4>
-              <div className="flex flex-wrap gap-2">
-                {selectedJob.skills.map(skill => {
-                  const hasSkill = userSkillsLower.includes(skill.toLowerCase());
-                  return <span key={skill} className={`px-3 py-1.5 rounded-full text-sm font-medium flex items-center gap-1.5 border ${hasSkill && resumeData ? "bg-success/20 text-success border-success/30" : "bg-secondary text-secondary-foreground border-border"}`}>
-                    {hasSkill && resumeData && <Check className="w-3 h-3" />}
-                    {skill}
-                  </span>;
-                })}
-              </div>
-            </div>
-
-            {resumeData && <div>
-              <h4 className="font-semibold mb-3">Skills Gap for This Job</h4>
-              <div className="flex flex-wrap gap-2">
-                {selectedJob.skills.filter(skill => !userSkillsLower.includes(skill.toLowerCase())).map(skill => <span key={skill} className="px-3 py-1.5 bg-warning/20 text-warning rounded-full text-sm font-medium border border-warning/30">
-                  Learn {skill}
-                </span>)}
-                {selectedJob.skills.every(skill => userSkillsLower.includes(skill.toLowerCase())) && <p className="text-success">🎉 You have all required skills for this job!</p>}
-              </div>
-            </div>}
-
-            <Button className="w-full gradient-primary hover:opacity-90 text-lg py-6" onClick={handleApply}>
-              Apply Now
-            </Button>
-          </div>
-        </>}
-      </DialogContent>
-    </Dialog>
-  </div>;
+  );
 };
+
 export default Jobs;

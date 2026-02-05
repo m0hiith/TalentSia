@@ -9,8 +9,11 @@ import Index from "./pages/Index";
 import Upload from "./pages/Upload";
 import Skills from "./pages/Skills";
 import Jobs from "./pages/Jobs";
-import JobMatch from "./pages/JobMatch";
 import NotFound from "./pages/NotFound";
+import Dashboard from "./pages/Dashboard";
+import SavedJobs from "./pages/SavedJobs";
+import Applications from "./pages/Applications";
+import CoverLetter from "./pages/CoverLetter";
 
 const queryClient = new QueryClient();
 
@@ -27,18 +30,21 @@ const App = () => (
       <Sonner />
       <AuthProvider>
         <BrowserRouter>
-          <div className="flex flex-col min-h-screen">
+          <div className="flex flex-col min-h-screen dark">
             <Navbar />
             <main className="flex-1">
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/resume-builder" element={<ProtectedRoute><ResumeBuilder /></ProtectedRoute>} />
                 <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
                 <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
                 <Route path="/skills" element={<ProtectedRoute><Skills /></ProtectedRoute>} />
                 <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
-                <Route path="/match-job" element={<ProtectedRoute><JobMatch /></ProtectedRoute>} />
+                <Route path="/saved-jobs" element={<ProtectedRoute><SavedJobs /></ProtectedRoute>} />
+                <Route path="/applications" element={<ProtectedRoute><Applications /></ProtectedRoute>} />
+                <Route path="/cover-letter" element={<ProtectedRoute><CoverLetter /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>
