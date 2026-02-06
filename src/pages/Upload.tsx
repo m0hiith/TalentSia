@@ -1,16 +1,63 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Upload as UploadIcon, FileText, X, Loader2, PenTool } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useResumeStore } from "@/store/resumeStore";
 import { toast } from "@/hooks/use-toast";
 import { analyzeResume } from "@/lib/ats-service";
+import { supabase } from "@/lib/supabase";
+
 const Upload = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isCheckingExisting, setIsCheckingExisting] = useState(true);
   const navigate = useNavigate();
   const setResumeData = useResumeStore(state => state.setResumeData);
+
+  // Check if user already has an analysis - redirect them immediately
+  useEffect(() => {
+    const checkExistingAnalysis = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { data: existingProfile } = await supabase
+            .from('student_profiles')
+            .select('ats_score, full_name')
+            .eq('user_id', session.user.id)
+            .single();
+
+          if (existingProfile) {
+            toast({
+              title: "Resume Already Analyzed",
+              description: `You've already analyzed your resume (Score: ${existingProfile.ats_score}/100). Each user gets one free analysis.`,
+              variant: "destructive"
+            });
+            navigate("/skills");
+            return;
+          }
+        }
+      } catch (error) {
+        console.log("No existing profile found, allowing upload");
+      } finally {
+        setIsCheckingExisting(false);
+      }
+    };
+
+    checkExistingAnalysis();
+  }, [navigate]);
+
+  // Show loading while checking for existing analysis
+  if (isCheckingExisting) {
+    return (
+      <div className="min-h-screen pt-24 pb-16 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Checking your profile...</p>
+        </div>
+      </div>
+    );
+  }
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -68,6 +115,27 @@ const Upload = () => {
     setIsAnalyzing(true);
 
     try {
+      // Check if user already has an analysis (to save API costs)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: existingProfile } = await supabase
+          .from('student_profiles')
+          .select('ats_score, full_name')
+          .eq('user_id', session.user.id)
+          .single();
+
+        if (existingProfile) {
+          setIsAnalyzing(false);
+          toast({
+            title: "Resume Already Analyzed",
+            description: `You've already analyzed your resume (Score: ${existingProfile.ats_score}/100). Each user gets one free analysis.`,
+            variant: "destructive"
+          });
+          navigate("/skills"); // Redirect to see their existing analysis
+          return;
+        }
+      }
+
       // Get current interests from store if available to provide context
       const currentData = useResumeStore.getState().resumeData || {
         skills: [],

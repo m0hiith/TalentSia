@@ -207,7 +207,7 @@ export const analyzeResume = async (resume: ResumeData, file?: File): Promise<AT
         if (session?.user) {
             console.log("Attempting to save for user:", session.user.id);
 
-            const { error: dbError } = await supabase.from('student_profiles').insert({
+            const { error: dbError } = await supabase.from('student_profiles').upsert({
                 user_id: session.user.id,
                 full_name: parsed.basicInfo.fullName,
                 email: parsed.basicInfo.email,
@@ -217,7 +217,7 @@ export const analyzeResume = async (resume: ResumeData, file?: File): Promise<AT
                 missing_skills: parsed.missingSkills,
                 summary: parsed.summary,
                 inferred_interests: parsed.inferredInterests
-            });
+            }, { onConflict: 'user_id' });
 
             if (dbError) {
                 console.error("Supabase Write Error:", dbError);
