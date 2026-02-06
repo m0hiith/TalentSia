@@ -37,7 +37,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
         };
 
-        getInitialSession();
+        // Add timeout to prevent infinite loading if Supabase is slow
+        const timeout = setTimeout(() => {
+            console.log("Auth timeout - Supabase might be slow");
+            setLoading(false);
+        }, 5000);
+
+        getInitialSession().finally(() => clearTimeout(timeout));
 
         // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -46,7 +52,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setLoading(false);
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            subscription.unsubscribe();
+            clearTimeout(timeout);
+        };
     }, []);
 
     const signOut = async () => {
