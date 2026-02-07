@@ -103,6 +103,8 @@ const Upload = () => {
         atsScore: result.score,
         matchedSkills: result.matchedSkills,
         missingSkills: result.missingSkills,
+        atsSummary: result.summary,
+        atsImprovements: result.improvements,
         formatFeedback: result.formatFeedback,
         aiInsights: result.aiInsights,
         resumeText: result.resumeText,
