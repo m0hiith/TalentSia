@@ -11,37 +11,19 @@ const Upload = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isCheckingExisting, setIsCheckingExisting] = useState(true);
   const navigate = useNavigate();
   const setResumeData = useResumeStore(state => state.setResumeData);
-
-  // TEMPORARILY DISABLED: Check if user already has an analysis
-  // This was causing a blank page issue - needs investigation
-  useEffect(() => {
-    // Immediately allow upload without checking Supabase
-    setIsCheckingExisting(false);
-  }, []);
-
-  // Show loading while checking for existing analysis
-  if (isCheckingExisting) {
-    return (
-      <div className="min-h-screen pt-24 pb-16 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Checking your profile...</p>
-        </div>
-      </div>
-    );
-  }
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
   }, []);
+
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
   }, []);
+
   const validateFile = (file: File): boolean => {
     const validTypes = ["application/pdf", "text/plain"];
     const maxSize = 2 * 1024 * 1024; // 2MB
@@ -64,6 +46,7 @@ const Upload = () => {
     }
     return true;
   };
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
@@ -72,46 +55,29 @@ const Upload = () => {
       setFile(droppedFile);
     }
   }, []);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile && validateFile(selectedFile)) {
       setFile(selectedFile);
     }
   };
+
   const handleRemoveFile = () => {
     setFile(null);
   };
+
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return bytes + " B";
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
+
   const handleAnalyze = async () => {
     if (!file) return;
     setIsAnalyzing(true);
 
     try {
-      // Check if user already has an analysis (to save API costs)
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const { data: existingProfile } = await supabase
-          .from('student_profiles')
-          .select('ats_score, full_name')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
-
-        if (existingProfile) {
-          setIsAnalyzing(false);
-          toast({
-            title: "Resume Already Analyzed",
-            description: `You've already analyzed your resume (Score: ${existingProfile.ats_score}/100). Each user gets one free analysis.`,
-            variant: "destructive"
-          });
-          navigate("/skills"); // Redirect to see their existing analysis
-          return;
-        }
-      }
-
       // Get current interests from store if available to provide context
       const currentData = useResumeStore.getState().resumeData || {
         skills: [],
@@ -136,18 +102,18 @@ const Upload = () => {
         // Update analysis results
         atsScore: result.score,
         matchedSkills: result.matchedSkills,
-        missingSkills: result.missingSkills, // These are effectively recommended skills
-        atsSummary: result.summary,
-        atsImprovements: result.improvements,
-        resumeText: result.fullText // Save raw text for Job Matcher
+        missingSkills: result.missingSkills,
+        formatFeedback: result.formatFeedback,
+        aiInsights: result.aiInsights,
+        resumeText: result.resumeText,
+        fileName: file.name,
       };
 
       setResumeData(mergedData);
 
       toast({
-        title: "Analysis Complete",
-        description: `Score: ${result.score}/100. ${result.databaseStatus?.success ? "Saved to Profile!" : "⚠️ Data NOT saved: " + result.databaseStatus?.message}`,
-        variant: result.databaseStatus?.success ? "default" : "destructive"
+        title: "Resume Analyzed Successfully!",
+        description: `Your ATS score is ${result.score}. Check your skills analysis.`,
       });
 
       // Navigate to confirmed interests page (Onboarding) instead of skills directly
@@ -164,94 +130,84 @@ const Upload = () => {
       setIsAnalyzing(false);
     }
   };
-  return <div className="min-h-screen pt-24 pb-16">
-    <div className="container mx-auto px-4 max-w-2xl">
-      <div className="text-center mb-10 animate-fade-in">
-        <h1 className="text-3xl md:text-4xl font-bold mb-4">Upload Your Resume</h1>
-        <p className="text-lg text-muted-foreground">
-          Upload your resume to analyze your skills and find matching jobs.
-        </p>
-      </div>
 
-      {/* Persistence Info Banner */}
-      {useResumeStore.getState().resumeData?.fullName && (
-        <div className="glass border-primary/20 bg-primary/5 p-4 rounded-xl mb-6 flex items-center justify-between animate-fade-in">
-          <div className="text-left">
-            <h3 className="font-semibold text-primary">Resume Active</h3>
-            <p className="text-sm text-muted-foreground">
-              Analyzed for <span className="font-bold">{useResumeStore.getState().resumeData?.fullName}</span>.
-              You can proceed to browse jobs or upload a new one.
-            </p>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => navigate("/jobs")}>
-            Find Jobs
+  return (
+    <div className="min-h-screen pt-24 pb-16">
+      <div className="container mx-auto px-4 max-w-2xl">
+        <div className="text-center mb-10 animate-fade-in">
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">Upload Your Resume</h1>
+          <p className="text-lg text-muted-foreground">
+            Upload your resume to analyze your skills and find matching jobs.
+          </p>
+        </div>
+
+        {/* Upload Area */}
+        <div
+          className={`glass rounded-2xl p-10 text-center transition-all duration-300 animate-fade-in-up ${isDragging ? "border-primary border-2 bg-primary/10" : "border-dashed border-2 border-border"}`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          {!file ? (
+            <div className="py-8">
+              <div className="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-6 animate-float">
+                <UploadIcon className="w-8 h-8 text-primary-foreground" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Drag & drop your resume here</h3>
+              <p className="text-muted-foreground mb-6">or click to browse your files</p>
+              <input type="file" accept=".pdf,.txt" onChange={handleFileChange} className="hidden" id="file-upload" />
+              <label htmlFor="file-upload">
+                <Button variant="outline" className="cursor-pointer" asChild>
+                  <span>Browse Files</span>
+                </Button>
+              </label>
+              <p className="text-sm text-muted-foreground mt-4">
+                Supports PDF and TXT (max 2MB)
+              </p>
+            </div>
+          ) : (
+            <div className="py-6">
+              <div className="flex items-center justify-between glass p-4 rounded-xl mb-6">
+                <div className="flex items-center gap-3">
+                  <FileText className="w-8 h-8 text-primary" />
+                  <div className="text-left">
+                    <p className="font-medium">{file.name}</p>
+                    <p className="text-sm text-muted-foreground">{formatFileSize(file.size)}</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon" onClick={handleRemoveFile}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              <Button
+                className="gradient-primary w-full h-12 text-lg font-semibold"
+                onClick={handleAnalyze}
+                disabled={isAnalyzing}
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  "Analyze Resume"
+                )}
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Or create resume section */}
+        <div className="mt-8 text-center animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+          <p className="text-muted-foreground mb-4">Don't have a resume yet?</p>
+          <Button variant="outline" className="gap-2" onClick={() => navigate("/resume-builder")}>
+            <PenTool className="w-4 h-4" />
+            Build Your Resume
           </Button>
         </div>
-      )}
-
-      {/* Upload Area */}
-      <div className={`glass rounded-2xl p-10 text-center transition-all duration-300 animate-fade-in-up ${isDragging ? "border-primary border-2 bg-primary/10" : "border-dashed border-2 border-border"}`} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
-        {!file ? <div className="py-8">
-          <div className="w-16 h-16 gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-6 animate-float">
-            <UploadIcon className="w-8 h-8 text-primary-foreground" />
-          </div>
-          <h3 className="text-xl font-semibold mb-2">Drag & drop your resume here</h3>
-          <p className="text-muted-foreground mb-6">or click to browse your files</p>
-          <input type="file" accept=".pdf,.txt" onChange={handleFileChange} className="hidden" id="file-upload" />
-          <div className="flex flex-col gap-4 max-w-xs mx-auto">
-            <label htmlFor="file-upload">
-              <Button variant="outline" className="cursor-pointer w-full" asChild>
-                <span>Browse Files</span>
-              </Button>
-            </label>
-
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <span className="h-px bg-border flex-1"></span>
-              <span className="text-xs uppercase">OR</span>
-              <span className="h-px bg-border flex-1"></span>
-            </div>
-
-            <Button variant="default" className="w-full gradient-primary" onClick={() => navigate("/resume-builder")}>
-              <PenTool className="w-4 h-4 mr-2" />
-              Create Manually
-            </Button>
-          </div>
-
-          <p className="text-sm text-muted-foreground mt-4">
-            Supported formats: PDF, TXT (Max 2MB)
-          </p>
-        </div> : <div className="py-4">
-          <div className="glass rounded-xl p-4 flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center">
-                <FileText className="w-6 h-6 text-primary" />
-              </div>
-              <div className="text-left">
-                <p className="font-medium text-foreground truncate max-w-[200px] md:max-w-[300px]">
-                  {file.name}
-                </p>
-                <p className="text-sm text-muted-foreground">{formatFileSize(file.size)}</p>
-              </div>
-            </div>
-            <Button variant="ghost" size="icon" onClick={handleRemoveFile} className="text-muted-foreground hover:text-destructive">
-              <X className="w-5 h-5" />
-            </Button>
-          </div>
-        </div>}
-      </div>
-
-      {/* Analyze Button */}
-      <div className="mt-8 text-center animate-fade-in-up" style={{
-        animationDelay: "200ms"
-      }}>
-        <Button size="lg" onClick={handleAnalyze} disabled={!file || isAnalyzing} className="gradient-primary hover:opacity-90 transition-opacity text-lg px-12 py-6 w-full md:w-auto">
-          {isAnalyzing ? <>
-            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-            Analyzing your resume...
-          </> : "Analyze Resume"}
-        </Button>
       </div>
     </div>
-  </div>;
+  );
 };
-export default Upload;// Build: 1770438632
+
+export default Upload;
