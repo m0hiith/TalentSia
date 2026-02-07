@@ -32,7 +32,7 @@ const Upload = () => {
           .from('student_profiles')
           .select('ats_score, full_name')
           .eq('user_id', session.user.id)
-          .single();
+          .maybeSingle();
 
         // If profile exists, redirect to skills
         if (existingProfile && !profileError) {
