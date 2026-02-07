@@ -15,67 +15,12 @@ const Upload = () => {
   const navigate = useNavigate();
   const setResumeData = useResumeStore(state => state.setResumeData);
 
-  // Check if user already has an analysis - redirect them immediately
+  // TEMPORARILY DISABLED: Check if user already has an analysis
+  // This was causing a blank page issue - needs investigation
   useEffect(() => {
-    let mounted = true;
-
-    const checkExistingAnalysis = async () => {
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-        // If no session or error, just allow upload
-        if (sessionError || !session?.user) {
-          console.log("No session found, allowing upload");
-          if (mounted) setIsCheckingExisting(false);
-          return;
-        }
-
-        // Try to fetch existing profile - but don't crash on error
-        try {
-          const { data: existingProfile, error: profileError } = await supabase
-            .from('student_profiles')
-            .select('ats_score, full_name')
-            .eq('user_id', session.user.id)
-            .maybeSingle();
-
-          console.log("Profile check result:", { existingProfile, profileError });
-
-          // If profile exists and no error, redirect to skills
-          if (existingProfile && existingProfile.ats_score && !profileError) {
-            toast({
-              title: "Resume Already Analyzed",
-              description: `You've already analyzed your resume (Score: ${existingProfile.ats_score}/100). Each user gets one free analysis.`,
-              variant: "destructive"
-            });
-            navigate("/skills");
-            return;
-          }
-        } catch (profileErr) {
-          console.error("Error fetching profile (allowing upload):", profileErr);
-        }
-
-        // No existing profile or error, allow upload
-        if (mounted) setIsCheckingExisting(false);
-      } catch (error) {
-        console.error("Error checking session:", error);
-        // On any error, allow upload (fail open)
-        if (mounted) setIsCheckingExisting(false);
-      }
-    };
-
-    // Add a safety timeout in case Supabase hangs
-    const timeout = setTimeout(() => {
-      console.log("Timeout reached, allowing upload");
-      if (mounted) setIsCheckingExisting(false);
-    }, 3000);
-
-    checkExistingAnalysis();
-
-    return () => {
-      mounted = false;
-      clearTimeout(timeout);
-    };
-  }, [navigate]);
+    // Immediately allow upload without checking Supabase
+    setIsCheckingExisting(false);
+  }, []);
 
   // Show loading while checking for existing analysis
   if (isCheckingExisting) {
