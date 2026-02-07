@@ -11,76 +11,8 @@ const Upload = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isCheckingExisting, setIsCheckingExisting] = useState(true);
   const navigate = useNavigate();
   const setResumeData = useResumeStore(state => state.setResumeData);
-
-  // Check if user already has an analysis - redirect them if so
-  useEffect(() => {
-    let isMounted = true;
-
-    const checkExistingProfile = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (!session?.user) {
-          // No logged in user, allow upload
-          if (isMounted) setIsCheckingExisting(false);
-          return;
-        }
-
-        // Check if user already has a profile with an ATS score
-        const { data: profile } = await supabase
-          .from('student_profiles')
-          .select('ats_score, full_name')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
-
-        if (profile && profile.ats_score) {
-          // User already has an analysis - redirect to skills
-          toast({
-            title: "Resume Already Analyzed",
-            description: `You've already analyzed your resume (Score: ${profile.ats_score}/100). Each user gets one free analysis.`,
-            variant: "destructive"
-          });
-          navigate("/skills");
-          return;
-        }
-
-        // No existing profile, allow upload
-        if (isMounted) setIsCheckingExisting(false);
-      } catch (error) {
-        console.error("Error checking profile:", error);
-        // On error, allow upload (fail open)
-        if (isMounted) setIsCheckingExisting(false);
-      }
-    };
-
-    // Safety timeout - if check takes too long, just show upload
-    const timeout = setTimeout(() => {
-      if (isMounted) setIsCheckingExisting(false);
-    }, 3000);
-
-    checkExistingProfile();
-
-    return () => {
-      isMounted = false;
-      clearTimeout(timeout);
-    };
-  }, [navigate]);
-
-  // Show loading while checking
-  if (isCheckingExisting) {
-    return (
-      <div className="min-h-screen pt-24 pb-16 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Checking your profile...</p>
-        </div>
-      </div>
-    );
-  }
-
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
