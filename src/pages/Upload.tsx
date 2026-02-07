@@ -17,6 +17,8 @@ const Upload = () => {
 
   // Check if user already has an analysis - redirect them immediately
   useEffect(() => {
+    let mounted = true;
+
     const checkExistingAnalysis = async () => {
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -24,45 +26,55 @@ const Upload = () => {
         // If no session or error, just allow upload
         if (sessionError || !session?.user) {
           console.log("No session found, allowing upload");
-          setIsCheckingExisting(false);
+          if (mounted) setIsCheckingExisting(false);
           return;
         }
 
-        const { data: existingProfile, error: profileError } = await supabase
-          .from('student_profiles')
-          .select('ats_score, full_name')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
+        // Try to fetch existing profile - but don't crash on error
+        try {
+          const { data: existingProfile, error: profileError } = await supabase
+            .from('student_profiles')
+            .select('ats_score, full_name')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
 
-        // If profile exists, redirect to skills
-        if (existingProfile && !profileError) {
-          toast({
-            title: "Resume Already Analyzed",
-            description: `You've already analyzed your resume (Score: ${existingProfile.ats_score}/100). Each user gets one free analysis.`,
-            variant: "destructive"
-          });
-          navigate("/skills");
-          return;
+          console.log("Profile check result:", { existingProfile, profileError });
+
+          // If profile exists and no error, redirect to skills
+          if (existingProfile && existingProfile.ats_score && !profileError) {
+            toast({
+              title: "Resume Already Analyzed",
+              description: `You've already analyzed your resume (Score: ${existingProfile.ats_score}/100). Each user gets one free analysis.`,
+              variant: "destructive"
+            });
+            navigate("/skills");
+            return;
+          }
+        } catch (profileErr) {
+          console.error("Error fetching profile (allowing upload):", profileErr);
         }
 
-        // No existing profile, allow upload
-        setIsCheckingExisting(false);
+        // No existing profile or error, allow upload
+        if (mounted) setIsCheckingExisting(false);
       } catch (error) {
-        console.error("Error checking profile:", error);
+        console.error("Error checking session:", error);
         // On any error, allow upload (fail open)
-        setIsCheckingExisting(false);
+        if (mounted) setIsCheckingExisting(false);
       }
     };
 
     // Add a safety timeout in case Supabase hangs
     const timeout = setTimeout(() => {
       console.log("Timeout reached, allowing upload");
-      setIsCheckingExisting(false);
-    }, 5000);
+      if (mounted) setIsCheckingExisting(false);
+    }, 3000);
 
-    checkExistingAnalysis().finally(() => clearTimeout(timeout));
+    checkExistingAnalysis();
 
-    return () => clearTimeout(timeout);
+    return () => {
+      mounted = false;
+      clearTimeout(timeout);
+    };
   }, [navigate]);
 
   // Show loading while checking for existing analysis
