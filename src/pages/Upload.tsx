@@ -153,7 +153,7 @@ const Upload = () => {
           .from('student_profiles')
           .select('ats_score, full_name')
           .eq('user_id', session.user.id)
-          .single();
+          .maybeSingle();
 
         if (existingProfile) {
           setIsAnalyzing(false);
