@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Briefcase, FileText, BarChart3, Home, LogIn, LogOut, User, LayoutDashboard, Bookmark, ClipboardList, FileEdit } from "lucide-react";
+import { Briefcase, FileText, BarChart3, Home, LogIn, LogOut, User, LayoutDashboard, Bookmark, ClipboardList, FileEdit, TrendingUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,8 @@ const Navbar = () => {
   const authNavItems = [
     { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { path: "/upload", label: "Analyze", icon: FileText },
-    { path: "/skills", label: "Skills", icon: BarChart3 },
+    { path: "/skills", label: "My Skills", icon: BarChart3 },
+    { path: "/learning-path", label: "Learning Path", icon: TrendingUp },
     { path: "/jobs", label: "Jobs", icon: Briefcase },
   ];
 

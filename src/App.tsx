@@ -22,6 +22,7 @@ import Auth from "./pages/Auth";
 import ResumeBuilder from "./pages/ResumeBuilder";
 import Onboarding from "./pages/Onboarding";
 import ProtectedRoute from "./components/ProtectedRoute";
+import LearningPath from "./pages/LearningPath";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -41,6 +42,7 @@ const App = () => (
                 <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
                 <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
                 <Route path="/skills" element={<ProtectedRoute><Skills /></ProtectedRoute>} />
+                <Route path="/learning-path" element={<ProtectedRoute><LearningPath /></ProtectedRoute>} />
                 <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
                 <Route path="/saved-jobs" element={<ProtectedRoute><SavedJobs /></ProtectedRoute>} />
                 <Route path="/applications" element={<ProtectedRoute><Applications /></ProtectedRoute>} />
