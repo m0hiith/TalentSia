@@ -90,7 +90,7 @@ const Jobs = () => {
   const { saveJob, unsaveJob, isJobSaved } = useSavedJobsStore();
   const { addApplication, getApplicationByJobId } = useApplicationsStore();
 
-  const userSkillsLower = resumeData?.skills.map(s => s.toLowerCase()) || [];
+  const userSkillsLower = useMemo(() => resumeData?.skills.map(s => s.toLowerCase()) || [], [resumeData?.skills]);
 
   // Fetch jobs from Adzuna API
   const fetchJobs = async (query?: string, location?: string, page: number = 1) => {

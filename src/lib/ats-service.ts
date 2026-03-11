@@ -95,10 +95,6 @@ export const analyzeResume = async (resume: ResumeData, file?: File): Promise<AT
 
     let resumeText = "";
 
-    // Note: useMemo is a React Hook and cannot be used outside of React components.
-    // We'll create a regular constant for userSkillsLower.
-    const userSkillsLower = resume?.skills.map(s => s.toLowerCase()) || [];
-
     if (file) {
         const ext = file.name.split(".").pop()?.toLowerCase();
         if (ext === "pdf") {
