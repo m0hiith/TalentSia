@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Search, MapPin, DollarSign, Filter, Bookmark, BookmarkCheck, Check, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -93,7 +93,7 @@ const Jobs = () => {
   const userSkillsLower = useMemo(() => resumeData?.skills.map(s => s.toLowerCase()) || [], [resumeData?.skills]);
 
   // Fetch jobs from Adzuna API
-  const fetchJobs = async (query?: string, location?: string, page: number = 1) => {
+  const fetchJobs = useCallback(async (query?: string, location?: string, page: number = 1) => {
     setIsLoading(true);
     setError(null);
 
@@ -140,7 +140,7 @@ const Jobs = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [resumeData?.interests]);
 
   // Initial fetch
   useEffect(() => {
