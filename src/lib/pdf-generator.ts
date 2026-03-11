@@ -5,7 +5,7 @@ import { ResumeData, WorkExperience } from "@/store/resumeStore";
 // Extend jsPDF type to include autoTable
 declare module "jspdf" {
     interface jsPDF {
-        autoTable: (options: any) => jsPDF;
+        autoTable: (options: Record<string, unknown>) => jsPDF;
     }
 }
 

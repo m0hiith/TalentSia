@@ -92,7 +92,7 @@ const Skills = () => {
     } else {
       setLoading(false);
     }
-  }, [resumeData]);
+  }, [resumeData, updateResumeData]);
 
   // Generate roadmap modules (for progress display + learning path page)
   useEffect(() => {
@@ -107,7 +107,7 @@ const Skills = () => {
       );
       setModules(roadmap);
     }
-  }, [resumeData, modules.length]);
+  }, [resumeData, modules.length, setModules]);
 
   // Empty state
   if (!resumeData) {

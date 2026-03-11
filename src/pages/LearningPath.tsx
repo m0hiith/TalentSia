@@ -224,7 +224,7 @@ const LearningPath = () => {
         } else {
             setLoading(false);
         }
-    }, [resumeData]);
+    }, [resumeData, updateResumeData]);
 
     useEffect(() => {
         if (
@@ -238,7 +238,7 @@ const LearningPath = () => {
             );
             setModules(roadmap);
         }
-    }, [resumeData, modules.length]);
+    }, [resumeData, modules.length, setModules]);
 
     if (!resumeData) {
         return (

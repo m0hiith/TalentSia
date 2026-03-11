@@ -86,11 +86,12 @@ const CoverLetter = () => {
 
             setCoverLetter(text);
             toast({ title: "Cover letter generated!", description: "Review and customize as needed." });
-        } catch (error: any) {
-            console.error("Error generating cover letter:", error);
+        } catch (error: unknown) {
+            const err = error as Error;
+            console.error("Error generating cover letter:", err);
             toast({
                 title: "Generation failed",
-                description: error.message || "Please try again later.",
+                description: err.message || "Please try again later.",
                 variant: "destructive"
             });
         } finally {

@@ -145,7 +145,7 @@ const Jobs = () => {
   // Initial fetch
   useEffect(() => {
     fetchJobs();
-  }, []);
+  }, [fetchJobs]);
 
   // Search handler
   const handleSearch = () => {
@@ -197,7 +197,7 @@ const Jobs = () => {
   }, [jobs, resumeData, userSkillsLower]);
 
   const filteredAndSortedJobs = useMemo(() => {
-    let filtered = jobsWithMatch;
+    const filtered = jobsWithMatch;
 
     switch (sortBy) {
       case "match-desc":

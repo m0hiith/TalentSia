@@ -53,7 +53,10 @@ const extractTextFromPdf = async (file: File): Promise<string> => {
         for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
             const textContent = await page.getTextContent();
-            const pageText = textContent.items.map((item: any) => item.str).join(" ");
+            const pageText = textContent.items.map((item: unknown) => {
+                const textItem = item as { str?: string };
+                return textItem.str || "";
+            }).join(" ");
             fullText += pageText + "\n";
         }
         return fullText;
@@ -91,6 +94,10 @@ export const analyzeResume = async (resume: ResumeData, file?: File): Promise<AT
     // If the user hasn't selected a file but has filled out the form, we can try to construct a "text" representation.
 
     let resumeText = "";
+
+    // Note: useMemo is a React Hook and cannot be used outside of React components.
+    // We'll create a regular constant for userSkillsLower.
+    const userSkillsLower = resume?.skills.map(s => s.toLowerCase()) || [];
 
     if (file) {
         const ext = file.name.split(".").pop()?.toLowerCase();
@@ -239,9 +246,10 @@ export const analyzeResume = async (resume: ResumeData, file?: File): Promise<AT
 
         return { ...parsed, databaseStatus: dbStatus };
 
-    } catch (error: any) {
-        console.error("Gemini Analysis Failed:", error);
-        console.error("Error details:", error.message || error.toString());
+    } catch (error: unknown) {
+        const err = error as Error;
+        console.error("Gemini Analysis Failed:", err);
+        console.error("Error details:", err.message || err.toString());
 
         return {
             basicInfo: {
@@ -254,10 +262,10 @@ export const analyzeResume = async (resume: ResumeData, file?: File): Promise<AT
             },
             score: 0,
             matchedSkills: [],
-            missingSkills: ["Analysis Failed: " + (error.message ? error.message.slice(0, 50) : "Unknown Error")],
+            missingSkills: ["Analysis Failed: " + (err.message ? err.message.slice(0, 50) : "Unknown Error")],
             recommendedSkills: [],
             details: { skillScore: 0, experienceScore: 0, roleScore: 0 },
-            summary: "Failed to analyze resume. Technical details: " + (error.message || "Unknown error"),
+            summary: "Failed to analyze resume. Technical details: " + (err.message || "Unknown error"),
             improvements: ["Verify API Key", "Check internet connection", "Try a different file format"]
         };
     }

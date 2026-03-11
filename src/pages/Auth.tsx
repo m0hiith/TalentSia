@@ -43,10 +43,11 @@ export default function Auth() {
                     description: "You have successfully signed in.",
                 });
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const err = error as Error;
             toast({
                 title: "Authentication Error",
-                description: error.message,
+                description: err.message,
                 variant: "destructive",
             });
         } finally {
