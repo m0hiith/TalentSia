@@ -1,7 +1,12 @@
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const NotFound = () => {
+  useDocumentMeta({
+    title: "Page Not Found",
+    description: "The page you're looking for doesn't exist. Return to the TalentSia homepage.",
+  });
   const location = useLocation();
 
   useEffect(() => {

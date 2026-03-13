@@ -8,8 +8,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 export default function Auth() {
+    useDocumentMeta({
+      title: "Sign In",
+      description: "Sign in or create a TalentSia account to access AI-powered career guidance, resume analysis, and job matching.",
+      canonicalPath: "/auth",
+    });
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 

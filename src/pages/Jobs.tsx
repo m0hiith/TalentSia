@@ -9,6 +9,7 @@ import { useSavedJobsStore } from "@/store/savedJobsStore";
 import { useApplicationsStore } from "@/store/applicationsStore";
 import { toast } from "@/hooks/use-toast";
 import { searchJobs, Job } from "@/lib/adzuna-service";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 // Fallback Mock Data (used when API fails)
 const MOCK_JOBS: Job[] = [
@@ -75,6 +76,11 @@ const MOCK_JOBS: Job[] = [
 ];
 
 const Jobs = () => {
+  useDocumentMeta({
+    title: "Find Jobs",
+    description: "Search and discover jobs that match your skills and experience. AI-powered job matching with personalized match scores.",
+    canonicalPath: "/jobs",
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [sortBy, setSortBy] = useState("match-desc");

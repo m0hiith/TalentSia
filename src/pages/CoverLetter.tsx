@@ -7,6 +7,7 @@ import { Loader2, FileText, Copy, Download, Sparkles, AlertCircle } from "lucide
 import { toast } from "@/components/ui/use-toast";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Link } from "react-router-dom";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const getGenAI = () => {
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
@@ -18,6 +19,11 @@ const getGenAI = () => {
 };
 
 const CoverLetter = () => {
+    useDocumentMeta({
+      title: "Cover Letter Generator",
+      description: "Generate a personalized, AI-powered cover letter tailored to any job description. Powered by Google Gemini.",
+      canonicalPath: "/cover-letter",
+    });
     const { resumeData } = useResumeStore();
     const [jobDescription, setJobDescription] = useState("");
     const [companyName, setCompanyName] = useState("");

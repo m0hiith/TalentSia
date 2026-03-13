@@ -2,7 +2,13 @@ import { Link } from "react-router-dom";
 import { ArrowRight, FileSearch, Target, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FeatureCard from "@/components/FeatureCard";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 const Index = () => {
+  useDocumentMeta({
+    title: "TalentSia — AI-Powered Career Guidance & Job Matching",
+    description: "Upload your resume, discover skill gaps, find matching jobs, build professional resumes, and generate cover letters — all powered by AI.",
+    canonicalPath: "/",
+  });
   const features = [{
     icon: FileSearch,
     title: "Resume Analysis",

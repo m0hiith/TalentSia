@@ -10,8 +10,14 @@ import { Plus, Trash2, Save, ArrowLeft, Download, FileText, Check } from "lucide
 import { useResumeStore, WorkExperience, ResumeData } from "@/store/resumeStore";
 import { toast } from "@/hooks/use-toast";
 import { generateResumePDF, TEMPLATES, TemplateId } from "@/lib/pdf-generator";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const ResumeBuilder = () => {
+    useDocumentMeta({
+      title: "Resume Builder",
+      description: "Build a professional resume with our easy-to-use builder. Add your experience, skills, and education, then download as PDF.",
+      canonicalPath: "/resume-builder",
+    });
     const navigate = useNavigate();
     const { resumeData: existingData, setResumeData } = useResumeStore();
     const [loading, setLoading] = useState(false);

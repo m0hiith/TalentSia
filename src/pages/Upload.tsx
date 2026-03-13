@@ -6,8 +6,14 @@ import { useResumeStore } from "@/store/resumeStore";
 import { toast } from "@/hooks/use-toast";
 import { analyzeResume } from "@/lib/ats-service";
 import { supabase } from "@/lib/supabase";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const Upload = () => {
+  useDocumentMeta({
+    title: "Resume Analyzer",
+    description: "Upload your resume for AI-powered ATS analysis. Get your ATS score, discover skill gaps, and receive improvement recommendations.",
+    canonicalPath: "/upload",
+  });
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);

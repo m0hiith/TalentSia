@@ -21,6 +21,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const statusConfig: Record<ApplicationStatus, { label: string; icon: React.ElementType; color: string; bgColor: string }> = {
     applied: { label: "Applied", icon: Send, color: "text-blue-500", bgColor: "bg-blue-500/10 border-blue-500/20" },
@@ -30,6 +31,11 @@ const statusConfig: Record<ApplicationStatus, { label: string; icon: React.Eleme
 };
 
 const Applications = () => {
+    useDocumentMeta({
+      title: "Applications",
+      description: "Track all your job applications — view status, add notes, and manage your application pipeline.",
+      canonicalPath: "/applications",
+    });
     const { applications, updateApplicationStatus, updateApplicationNotes, removeApplication } = useApplicationsStore();
     const [selectedApp, setSelectedApp] = useState<JobApplication | null>(null);
     const [notes, setNotes] = useState("");

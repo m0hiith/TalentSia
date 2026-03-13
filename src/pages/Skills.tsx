@@ -65,10 +65,17 @@ const SkillWithLearning = ({ skill }: { skill: string }) => {
   );
 };
 
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
+
 // =============================
 // SKILLS PAGE (Analysis Only)
 // =============================
 const Skills = () => {
+  useDocumentMeta({
+    title: "My Skills",
+    description: "View your skill analysis — matched skills, skill gaps, ATS score, and personalized improvement recommendations.",
+    canonicalPath: "/skills",
+  });
   const { resumeData, updateResumeData } = useResumeStore();
   const { modules, setModules, getProgress } = useRoadmapStore();
   const [loading, setLoading] = useState(true);

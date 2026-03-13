@@ -6,6 +6,7 @@ import { Check, Code, LineChart, Megaphone, Smartphone, Globe, Database, PenTool
 import { useResumeStore } from "@/store/resumeStore";
 import { toast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 export const CAREER_INTERESTS = [
     { id: "frontend", label: "Frontend Development", icon: Globe },
@@ -18,6 +19,11 @@ export const CAREER_INTERESTS = [
 ];
 
 const Onboarding = () => {
+    useDocumentMeta({
+      title: "Get Started",
+      description: "Select your career interests to get personalized job matching, skill analysis, and learning recommendations.",
+      canonicalPath: "/onboarding",
+    });
     const navigate = useNavigate();
     const { resumeData, updateResumeData } = useResumeStore();
     // Initialize with existing interests if available (e.g. from resume analysis)

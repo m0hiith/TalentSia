@@ -18,8 +18,14 @@ import {
 import { useSavedJobsStore } from "@/store/savedJobsStore";
 import { useApplicationsStore } from "@/store/applicationsStore";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const Dashboard = () => {
+    useDocumentMeta({
+      title: "Dashboard",
+      description: "View your career dashboard — ATS score, profile summary, saved jobs, and applications tracker.",
+      canonicalPath: "/dashboard",
+    });
     const { user } = useAuth();
     const { resumeData } = useResumeStore();
     const savedJobs = useSavedJobsStore((state) => state.savedJobs);

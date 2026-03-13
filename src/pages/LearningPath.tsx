@@ -197,10 +197,17 @@ const RoadmapStep = ({
     );
 };
 
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
+
 // =============================
 // LEARNING PATH PAGE
 // =============================
 const LearningPath = () => {
+    useDocumentMeta({
+      title: "Learning Path",
+      description: "Follow your personalized learning path to bridge skill gaps with curated resources, tutorials, and courses.",
+      canonicalPath: "/learning-path",
+    });
     const { resumeData, updateResumeData } = useResumeStore();
     const { modules, setModules, toggleFocusArea, completeModule, getProgress } = useRoadmapStore();
     const [loading, setLoading] = useState(true);

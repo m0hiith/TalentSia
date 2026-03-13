@@ -1,3 +1,6 @@
+# TalentSia robots.txt
+
+# Allow all search engine crawlers
 User-agent: Googlebot
 Allow: /
 
@@ -10,5 +13,34 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
+# AI Crawlers — allow for AI search visibility
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+# Block training-only crawlers
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+# Default: allow all
 User-agent: *
 Allow: /
+Disallow: /auth
+Disallow: /onboarding
+
+# Sitemap
+Sitemap: https://talentsia.com/sitemap.xml

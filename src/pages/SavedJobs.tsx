@@ -13,8 +13,14 @@ import {
     Search
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const SavedJobs = () => {
+    useDocumentMeta({
+      title: "Saved Jobs",
+      description: "View and manage your bookmarked job listings. Apply to saved positions or remove them from your list.",
+      canonicalPath: "/saved-jobs",
+    });
     const { savedJobs, unsaveJob } = useSavedJobsStore();
     const { addApplication, getApplicationByJobId } = useApplicationsStore();
 
