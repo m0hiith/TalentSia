@@ -8,72 +8,23 @@ import { useResumeStore } from "@/store/resumeStore";
 import { useSavedJobsStore } from "@/store/savedJobsStore";
 import { useApplicationsStore } from "@/store/applicationsStore";
 import { toast } from "@/hooks/use-toast";
-import { searchJobs, Job } from "@/lib/adzuna-service";
+import { supabase } from "@/lib/supabase";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
-// Fallback Mock Data (used when API fails)
-const MOCK_JOBS: Job[] = [
-  {
-    id: "mock-1",
-    title: "Senior React Developer",
-    company: "TechCorp India",
-    location: "Bangalore, India",
-    salary: "₹15L - ₹25L",
-    skills: ["React", "TypeScript", "Node.js", "AWS"],
-    description: "We are looking for a Senior React Developer to join our team.",
-    url: "https://example.com/jobs/1"
-  },
-  {
-    id: "mock-2",
-    title: "Full Stack Developer",
-    company: "StartupHub",
-    location: "Hyderabad, India",
-    salary: "₹10L - ₹18L",
-    skills: ["React", "Python", "MongoDB", "Docker"],
-    description: "Join our fast-growing startup as a Full Stack Developer.",
-    url: "https://example.com/jobs/2"
-  },
-  {
-    id: "mock-3",
-    title: "Frontend Engineer",
-    company: "Digital Solutions",
-    location: "Remote",
-    salary: "₹12L - ₹20L",
-    skills: ["JavaScript", "React", "CSS", "Redux"],
-    description: "Build amazing user experiences as a Frontend Engineer.",
-    url: "https://example.com/jobs/3"
-  },
-  {
-    id: "mock-4",
-    title: "Backend Developer",
-    company: "CloudTech",
-    location: "Mumbai, India",
-    salary: "₹14L - ₹22L",
-    skills: ["Node.js", "Python", "PostgreSQL", "AWS"],
-    description: "Design and build scalable backend systems.",
-    url: "https://example.com/jobs/4"
-  },
-  {
-    id: "mock-5",
-    title: "DevOps Engineer",
-    company: "InfraTech",
-    location: "Pune, India",
-    salary: "₹16L - ₹28L",
-    skills: ["Docker", "Kubernetes", "AWS", "CI/CD"],
-    description: "Manage our cloud infrastructure and deployment pipelines.",
-    url: "https://example.com/jobs/5"
-  },
-  {
-    id: "mock-6",
-    title: "Data Scientist",
-    company: "AI Labs",
-    location: "Bangalore, India",
-    salary: "₹18L - ₹35L",
-    skills: ["Python", "Machine Learning", "TensorFlow", "SQL"],
-    description: "Apply ML techniques to solve real-world problems.",
-    url: "https://example.com/jobs/6"
-  }
-];
+// Define Job type matching Supabase schema (capitalized column names)
+export interface Job {
+  id: string;
+  Title: string;
+  Company: string;
+  Location: string;
+  Salary: string;
+  Experience?: string;
+  Stipend?: string;
+  Link?: string;
+  Description: string;
+  skills: string[];
+  match?: number;
+}
 
 const Jobs = () => {
   useDocumentMeta({
@@ -81,6 +32,7 @@ const Jobs = () => {
     description: "Search and discover jobs that match your skills and experience. AI-powered job matching with personalized match scores.",
     canonicalPath: "/jobs",
   });
+
   const [searchQuery, setSearchQuery] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [sortBy, setSortBy] = useState("match-desc");
@@ -88,7 +40,6 @@ const Jobs = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isUsingMockData, setIsUsingMockData] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalJobs, setTotalJobs] = useState(0);
 
@@ -98,55 +49,92 @@ const Jobs = () => {
 
   const userSkillsLower = useMemo(() => resumeData?.skills.map(s => s.toLowerCase()) || [], [resumeData?.skills]);
 
-  // Fetch jobs from Adzuna API
+  // Fetch jobs directly from Supabase
   const fetchJobs = useCallback(async (query?: string, location?: string, page: number = 1) => {
+    // id="30sp1x"
+    console.log(import.meta.env.VITE_SUPABASE_URL);
+
     setIsLoading(true);
     setError(null);
-
     try {
-      // Build search query based on user interests/skills if no query provided
-      let searchTerm = query || "";
-      if (!searchTerm && resumeData?.interests?.[0]) {
-        searchTerm = resumeData.interests[0];
-      }
-      if (!searchTerm) {
-        searchTerm = "software developer"; // Default search
+      // Simple query — no filters initially to debug
+      const { data, error } = await supabase.from("jobs").select("*");
+
+      console.log("Supabase raw response - data:", data);
+      console.log("Supabase raw response - error:", error);
+      console.log("Supabase row count:", data?.length);
+      if (data && data.length > 0) {
+        console.log("First row keys:", Object.keys(data[0]));
+        console.log("First row sample:", data[0]);
       }
 
-      const result = await searchJobs({
-        query: searchTerm,
-        location: location || "",
-        page,
-        resultsPerPage: 12
-      });
-
-      if (result.error || result.jobs.length === 0) {
-        console.log("Using mock data due to:", result.error || "No results");
-        setJobs(MOCK_JOBS);
-        setTotalJobs(MOCK_JOBS.length);
-        setIsUsingMockData(true);
-        if (result.error) {
-          toast({
-            title: "Using sample jobs",
-            description: "Couldn't connect to job API. Showing sample listings.",
-            variant: "default"
-          });
-        }
-      } else {
-        setJobs(result.jobs);
-        setTotalJobs(result.total);
-        setIsUsingMockData(false);
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
       }
+
+      // Normalize rows to match our Job interface — use capitalized Supabase column names
+      const fetchedJobs: Job[] = (data || []).map((row: any, idx: number) => ({
+        id: row.id || String(idx),
+        Title: row.Title || "Untitled",
+        Company: row.Company || "Unknown Company",
+        Location: row.Location || "Not specified",
+        Salary: row.Salary || row.Stipend || "Not disclosed",
+        Experience: row.Experience || "",
+        Stipend: row.Stipend || "",
+        Link: row.Link || "",
+        Description: row.Description || "No description available",
+        skills: Array.isArray(row.skills) ? row.skills : (typeof row.skills === "string" && row.skills ? row.skills.split(",").map((s: string) => s.trim()) : []),
+        match: 0,
+      }));
+
+      console.log("Normalized jobs:", fetchedJobs);
+      console.log("Normalized jobs count:", fetchedJobs.length);
+
+      // Apply search filters only if provided
+      let filtered = fetchedJobs;
+      if (query) {
+        const q = query.toLowerCase();
+        filtered = filtered.filter(j =>
+          j.Title.toLowerCase().includes(q) ||
+          j.Company.toLowerCase().includes(q) ||
+          j.Description.toLowerCase().includes(q)
+        );
+      }
+      if (location) {
+        const loc = location.toLowerCase();
+        filtered = filtered.filter(j => j.Location.toLowerCase().includes(loc));
+      }
+
+      console.log("Filtered jobs:", filtered);
+      console.log("Filtered jobs count:", filtered.length);
+
+      setJobs(filtered);
+      setTotalJobs(filtered.length);
     } catch (err) {
       console.error("Failed to fetch jobs:", err);
-      setJobs(MOCK_JOBS);
-      setTotalJobs(MOCK_JOBS.length);
-      setIsUsingMockData(true);
-      setError("Failed to load jobs");
+      setJobs([]);
+      setTotalJobs(0);
+      setError("Failed to load jobs. Check console for details.");
     } finally {
       setIsLoading(false);
     }
-  }, [resumeData?.interests]);
+  }, []);
+
+  // id="97m2mf"
+  async function testSupabaseRawFetch() {
+    const { data, error, count } = await supabase
+      .from("jobs")
+      .select("*", { count: "exact" });
+    console.log("Raw fetch data:", data);
+    console.log("Count:", count);
+    console.log("Error:", error);
+  }
+
+  // Run raw fetch test once on mount for debugging
+  useEffect(() => {
+    testSupabaseRawFetch();
+  }, []);
 
   // Initial fetch
   useEffect(() => {
@@ -159,18 +147,19 @@ const Jobs = () => {
     fetchJobs(searchQuery, locationFilter, 1);
   };
 
-  // Refresh jobs
+  // Refresh handler
   const handleRefresh = () => {
     fetchJobs(searchQuery, locationFilter, currentPage);
   };
 
-  // Calculate matches dynamically based on user profile
+  // Calculate match scores
   const jobsWithMatch = useMemo(() => {
     return jobs.map(job => {
       if (!resumeData) return { ...job, match: 0 };
 
       // 1. Skill Match (60%)
-      const jobSkills = job.skills.map(s => s.toLowerCase());
+      const safeSkills = Array.isArray(job.skills) ? job.skills : [];
+      const jobSkills = safeSkills.map(s => s.toLowerCase());
       const matchedSkills = jobSkills.filter(js => userSkillsLower.some(us => us.includes(js) || js.includes(us)));
       const skillScore = (matchedSkills.length / Math.max(jobSkills.length, 1)) * 100;
       const weightedSkillScore = skillScore * 0.6;
@@ -178,9 +167,9 @@ const Jobs = () => {
       // 2. Experience Match (20%)
       const userYears = resumeData.experience_years || 0;
       let experienceScore = 0;
-      if (job.title.toLowerCase().includes("senior")) {
+      if (job.Title.toLowerCase().includes("senior")) {
         experienceScore = userYears >= 5 ? 100 : (userYears / 5) * 100;
-      } else if (job.title.toLowerCase().includes("junior") || job.title.toLowerCase().includes("intern")) {
+      } else if (job.Title.toLowerCase().includes("junior") || job.Title.toLowerCase().includes("intern")) {
         experienceScore = userYears >= 0 ? 100 : 50;
       } else {
         experienceScore = userYears >= 2 ? 100 : (userYears / 2) * 100;
@@ -189,9 +178,9 @@ const Jobs = () => {
 
       // 3. Role/Interest Match (20%)
       let roleScore = 0;
-      if (resumeData.interests && resumeData.interests.some(i => job.title.toLowerCase().includes(i.toLowerCase()))) {
+      if (resumeData.interests && resumeData.interests.some(i => job.Title.toLowerCase().includes(i.toLowerCase()))) {
         roleScore = 100;
-      } else if (resumeData.job_titles && resumeData.job_titles.some(t => job.title.toLowerCase().includes(t.toLowerCase()))) {
+      } else if (resumeData.job_titles && resumeData.job_titles.some(t => job.Title.toLowerCase().includes(t.toLowerCase()))) {
         roleScore = 100;
       }
       const weightedRoleScore = roleScore * 0.2;
@@ -212,13 +201,13 @@ const Jobs = () => {
       case "salary-desc":
         // Sort by salary (extract number from string)
         filtered.sort((a, b) => {
-          const aMatch = a.salary.match(/\d+/);
-          const bMatch = b.salary.match(/\d+/);
+          const aMatch = (a.Salary || "").match(/\d+/);
+          const bMatch = (b.Salary || "").match(/\d+/);
           return (bMatch ? parseInt(bMatch[0]) : 0) - (aMatch ? parseInt(aMatch[0]) : 0);
         });
         break;
       case "title-asc":
-        filtered.sort((a, b) => a.title.localeCompare(b.title));
+        filtered.sort((a, b) => a.Title.localeCompare(b.Title));
         break;
     }
     return filtered;
@@ -234,20 +223,20 @@ const Jobs = () => {
     e?.stopPropagation();
     if (isJobSaved(job.id)) {
       unsaveJob(job.id);
-      toast({ title: "Removed from saved jobs", description: job.title });
+      toast({ title: "Removed from saved jobs", description: job.Title });
     } else {
       saveJob({
         id: job.id,
-        title: job.title,
-        company: job.company,
-        location: job.location,
-        salary: job.salary,
+        title: job.Title,
+        company: job.Company,
+        location: job.Location,
+        salary: job.Salary,
         skills: job.skills,
-        description: job.description,
-        url: job.url,
+        description: job.Description,
+        url: job.Link,
         match: job.match,
       });
-      toast({ title: "Job saved!", description: `${job.title} added to saved jobs.` });
+      toast({ title: "Job saved!", description: `${job.Title} added to saved jobs.` });
     }
   };
 
@@ -256,7 +245,7 @@ const Jobs = () => {
     if (existingApp) {
       toast({
         title: "Already applied",
-        description: `You've already applied to ${job.title}.`,
+        description: `You've already applied to ${job.Title}.`,
         variant: "destructive",
       });
       return;
@@ -264,23 +253,23 @@ const Jobs = () => {
 
     addApplication({
       jobId: job.id,
-      title: job.title,
-      company: job.company,
-      location: job.location,
-      salary: job.salary,
+      title: job.Title,
+      company: job.Company,
+      location: job.Location,
+      salary: job.Salary,
       status: "applied",
       notes: "",
-      url: job.url,
+      url: job.Link,
     });
 
     toast({
       title: "Application submitted!",
-      description: `${job.title} at ${job.company} added to your applications.`,
+      description: `${job.Title} at ${job.Company} added to your applications.`,
     });
 
     // Open job URL in new tab
-    if (job.url) {
-      window.open(job.url, "_blank");
+    if (job.Link) {
+      window.open(job.Link, "_blank");
     }
 
     setSelectedJob(null);
@@ -296,11 +285,6 @@ const Jobs = () => {
           <p className="text-lg text-muted-foreground">
             {resumeData ? "Discover opportunities tailored to your profile" : "Browse open positions"}
           </p>
-          {isUsingMockData && (
-            <p className="text-sm text-warning mt-2">
-              Showing sample jobs. Real-time jobs coming soon!
-            </p>
-          )}
         </div>
 
         {/* Search & Filters */}
@@ -372,8 +356,8 @@ const Jobs = () => {
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1 pr-2">
-                    <h3 className="text-lg font-bold text-foreground mb-1 line-clamp-2">{job.title}</h3>
-                    <p className="text-primary font-medium">{job.company}</p>
+                    <h3 className="text-lg font-bold text-foreground mb-1 line-clamp-2">{job.Title}</h3>
+                    <p className="text-primary font-medium">{job.Company}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     {resumeData && (
@@ -399,30 +383,30 @@ const Jobs = () => {
                 <div className="space-y-2 mb-4 flex-1">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <MapPin className="w-4 h-4" />
-                    <span className="line-clamp-1">{job.location}</span>
+                    <span className="line-clamp-1">{job.Location || "Not specified"}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <DollarSign className="w-4 h-4" />
-                    <span>{job.salary}</span>
+                    <span>{job.Salary || "Not specified"}</span>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {job.skills.slice(0, 4).map(skill => {
+                  {(job.skills || []).slice(0, 4).map(skill => {
                     const isMatch = userSkillsLower.some(us => us.includes(skill.toLowerCase()) || skill.toLowerCase().includes(us));
                     return (
                       <span
                         key={skill}
                         className={`px-2 py-1 rounded-full text-xs ${isMatch
-                            ? "bg-success/20 text-success"
-                            : "bg-secondary text-muted-foreground"
+                          ? "bg-success/20 text-success"
+                          : "bg-secondary text-muted-foreground"
                           }`}
                       >
                         {skill}
                       </span>
                     );
                   })}
-                  {job.skills.length > 4 && (
+                  {(job.skills || []).length > 4 && (
                     <span className="px-2 py-1 text-xs text-muted-foreground">
                       +{job.skills.length - 4} more
                     </span>
@@ -458,19 +442,19 @@ const Jobs = () => {
             {selectedJob && (
               <>
                 <DialogHeader>
-                  <DialogTitle className="text-2xl">{selectedJob.title}</DialogTitle>
-                  <p className="text-primary font-medium text-lg">{selectedJob.company}</p>
+                  <DialogTitle className="text-2xl">{selectedJob.Title}</DialogTitle>
+                  <p className="text-primary font-medium text-lg">{selectedJob.Company}</p>
                 </DialogHeader>
 
                 <div className="space-y-6 mt-4">
                   <div className="flex flex-wrap gap-4">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <MapPin className="w-5 h-5" />
-                      <span>{selectedJob.location}</span>
+                      <span>{selectedJob.Location}</span>
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <DollarSign className="w-5 h-5" />
-                      <span>{selectedJob.salary}</span>
+                      <span>{selectedJob.Salary}</span>
                     </div>
                     {resumeData && (
                       <span className={`px-3 py-1 rounded-full text-sm font-bold border ${getMatchColor(selectedJob.match || 0)}`}>
@@ -479,17 +463,18 @@ const Jobs = () => {
                     )}
                   </div>
 
+                  {(selectedJob.skills || []).length > 0 && (
                   <div>
                     <h4 className="font-semibold mb-2">Skills Required</h4>
                     <div className="flex flex-wrap gap-2">
-                      {selectedJob.skills.map(skill => {
+                      {(selectedJob.skills || []).map(skill => {
                         const isMatch = userSkillsLower.some(us => us.includes(skill.toLowerCase()) || skill.toLowerCase().includes(us));
                         return (
                           <span
                             key={skill}
                             className={`px-3 py-1.5 rounded-full text-sm ${isMatch
-                                ? "bg-success/20 text-success border border-success/30"
-                                : "bg-secondary text-muted-foreground"
+                              ? "bg-success/20 text-success border border-success/30"
+                              : "bg-secondary text-muted-foreground"
                               }`}
                           >
                             {isMatch && <Check className="w-3 h-3 inline mr-1" />}
@@ -499,10 +484,11 @@ const Jobs = () => {
                       })}
                     </div>
                   </div>
+                  )}
 
                   <div>
                     <h4 className="font-semibold mb-2">Job Description</h4>
-                    <p className="text-muted-foreground whitespace-pre-line">{selectedJob.description}</p>
+                    <p className="text-muted-foreground whitespace-pre-line">{selectedJob.Description}</p>
                   </div>
 
                   <div className="flex gap-4 pt-4 border-t border-border">
