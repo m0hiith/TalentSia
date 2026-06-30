@@ -14,7 +14,14 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ["var(--font-primary)"],
+        poppins: ["Poppins", "sans-serif"],
+      },
       colors: {
+        "talentsia-primary": "#0A66C2",
+        "talentsia-accent": "#1287E8",
+        "talentsia-ink": "#0F1B2D",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
