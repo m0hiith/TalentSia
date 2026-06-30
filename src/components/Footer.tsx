@@ -1,4 +1,3 @@
-import { Briefcase } from "lucide-react";
 
 const Footer = () => {
   return (

@@ -1,7 +1,7 @@
 import { useApplicationsStore, JobApplication, ApplicationStatus } from "@/store/applicationsStore";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -10,7 +10,6 @@ import {
     DollarSign,
     Trash2,
     ExternalLink,
-    Clock,
     CheckCircle,
     XCircle,
     MessageSquare,

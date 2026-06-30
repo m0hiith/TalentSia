@@ -1,5 +1,5 @@
 // Roadmap service: generates learning module roadmaps from user's skill gaps
-import { getResourcesForSkill, LearningResource } from "@/lib/learning-recommendations";
+import { getResourcesForSkill } from "@/lib/learning-recommendations";
 
 export type ModuleStatus = "completed" | "active" | "locked";
 export type ModuleTag = "required" | "desired";
@@ -137,8 +137,7 @@ function buildFocusAreas(keywords: string[], missingSkills: string[]): FocusArea
  */
 export function generateRoadmap(
     interests: string[],
-    missingSkills: string[],
-    targetRole?: string
+    missingSkills: string[]
 ): RoadmapModule[] {
     // Pick the best template based on first interest
     const primaryInterest = interests[0] || "fullstack";
