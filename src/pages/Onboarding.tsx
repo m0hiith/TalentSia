@@ -50,13 +50,9 @@ const Onboarding = () => {
 
         setIsAnalyzing(true);
 
-        // Save interests first
+        // Save interests; the real ATS analysis runs on the Skills page — no
+        // fabricated "analyzing" delay here. (P9)
         updateResumeData({ interests: selectedInterests });
-
-        // Simulate ATS Analysis Phase here (will be replaced by service later)
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // For now, simple redirect. The analysis logic sits better in the service call or the next page load.
 
         setIsAnalyzing(false);
         navigate("/skills");

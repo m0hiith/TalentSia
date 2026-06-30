@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
@@ -26,6 +26,17 @@ export default function Auth() {
         const email = formData.get("email") as string;
         const password = formData.get("password") as string;
 
+        // Minimal client-side guard (Supabase default minimum is 6). (P19)
+        if (type === "signup" && password.length < 6) {
+            toast({
+                title: "Password too short",
+                description: "Use at least 6 characters.",
+                variant: "destructive",
+            });
+            setLoading(false);
+            return;
+        }
+
         try {
             if (type === "signup") {
                 const { error } = await supabase.auth.signUp({
@@ -43,7 +54,7 @@ export default function Auth() {
                     password,
                 });
                 if (error) throw error;
-                navigate("/");
+                navigate("/dashboard");
                 toast({
                     title: "Welcome back!",
                     description: "You have successfully signed in.",

@@ -23,6 +23,7 @@ import ResumeBuilder from "./pages/ResumeBuilder";
 import Onboarding from "./pages/Onboarding";
 import ProtectedRoute from "./components/ProtectedRoute";
 import LearningPath from "./pages/LearningPath";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -31,9 +32,10 @@ const App = () => (
       <Sonner />
       <AuthProvider>
         <BrowserRouter>
-          <div className="flex flex-col min-h-screen dark">
+          <div className="flex flex-col min-h-screen">
             <Navbar />
             <main className="flex-1">
+              <ErrorBoundary>
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/auth" element={<Auth />} />
@@ -49,6 +51,7 @@ const App = () => (
                 <Route path="/cover-letter" element={<ProtectedRoute><CoverLetter /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              </ErrorBoundary>
             </main>
             <Footer />
           </div>

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Plus, Trash2, Save, ArrowLeft, Download, FileText, Check } from "lucide-react";
 import { useResumeStore, WorkExperience, ResumeData } from "@/store/resumeStore";
@@ -86,7 +86,6 @@ const ResumeBuilder = () => {
         setLoading(true);
 
         try {
-            await new Promise(resolve => setTimeout(resolve, 500));
             const resumeData = buildResumeData();
             setResumeData(resumeData);
 
@@ -244,7 +243,7 @@ const ResumeBuilder = () => {
                                 </Button>
                             </CardHeader>
                             <CardContent className="space-y-6">
-                                {experiences.map((exp, index) => (
+                                {experiences.map((exp) => (
                                     <div key={exp.id} className="p-4 border rounded-lg bg-secondary/20 relative">
                                         <Button
                                             type="button"

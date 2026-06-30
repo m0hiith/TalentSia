@@ -1,6 +1,10 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Session, User } from "@supabase/supabase-js";
+import { logger } from "@/lib/logger";
+import { useResumeStore } from "@/store/resumeStore";
+import { useSavedJobsStore } from "@/store/savedJobsStore";
+import { useApplicationsStore } from "@/store/applicationsStore";
 
 interface AuthContextType {
     session: Session | null;
@@ -24,42 +28,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Get initial session
+        // Resolve the initial session, then let onAuthStateChange keep it fresh.
+        // No artificial 5s timeout that flips loading=false with a null session
+        // and bounces a slowly-authenticating user to /auth. (P19)
         const getInitialSession = async () => {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
                 setSession(session);
                 setUser(session?.user ?? null);
             } catch (error) {
-                console.error("Error getting session:", error);
+                logger.error("Error getting session:", error);
             } finally {
                 setLoading(false);
             }
         };
 
-        // Add timeout to prevent infinite loading if Supabase is slow
-        const timeout = setTimeout(() => {
-            console.log("Auth timeout - Supabase might be slow");
-            setLoading(false);
-        }, 5000);
+        getInitialSession();
 
-        getInitialSession().finally(() => clearTimeout(timeout));
-
-        // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session);
             setUser(session?.user ?? null);
             setLoading(false);
         });
 
-        return () => {
-            subscription.unsubscribe();
-            clearTimeout(timeout);
-        };
+        return () => subscription.unsubscribe();
     }, []);
 
     const signOut = async () => {
         await supabase.auth.signOut();
+        // Clear per-browser PII so the next user of a shared machine can't read
+        // the previous user's résumé / applications after logout. (P16)
+        useResumeStore.getState().clearResumeData();
+        useSavedJobsStore.getState().clearAllSavedJobs();
+        useApplicationsStore.getState().clearAllApplications();
     };
 
     return (

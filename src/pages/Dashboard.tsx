@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import { useSavedJobsStore } from "@/store/savedJobsStore";
 import { useApplicationsStore } from "@/store/applicationsStore";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const Dashboard = () => {
@@ -38,23 +37,16 @@ const Dashboard = () => {
         if (resumeData.fullName) score += 15;
         if (resumeData.email) score += 10;
         if (resumeData.skills && resumeData.skills.length > 0) score += 20;
-        if (resumeData.experience_years) score += 15;
+        // `!= null` so a fresh grad with 0 years / a real ATS score of 0 still
+        // counts as "provided", instead of reading as incomplete. (P19)
+        if (resumeData.experience_years != null) score += 15;
         if (resumeData.education) score += 15;
         if (resumeData.interests && resumeData.interests.length > 0) score += 10;
-        if (resumeData.atsScore) score += 15;
+        if (resumeData.atsScore != null) score += 15;
         return Math.min(score, 100);
     };
 
     const profileCompleteness = calculateCompleteness();
-
-    // Mock ATS score history (in real app, fetch from Supabase)
-    const scoreHistory = [
-        { date: "Jan", score: resumeData?.atsScore ? Math.max(40, (resumeData.atsScore - 30)) : 40 },
-        { date: "Feb", score: resumeData?.atsScore ? Math.max(50, (resumeData.atsScore - 20)) : 50 },
-        { date: "Mar", score: resumeData?.atsScore ? Math.max(55, (resumeData.atsScore - 15)) : 55 },
-        { date: "Apr", score: resumeData?.atsScore ? Math.max(60, (resumeData.atsScore - 10)) : 60 },
-        { date: "May", score: resumeData?.atsScore || 65 },
-    ];
 
     const quickActions = [
         { title: "Analyze Resume", description: "Get AI-powered insights", icon: Sparkles, href: "/upload", color: "text-purple-500" },
@@ -160,38 +152,42 @@ const Dashboard = () => {
                 <div className="grid lg:grid-cols-3 gap-8">
                     {/* Left Column - Score Chart & Profile */}
                     <div className="lg:col-span-2 space-y-6">
-                        {/* ATS Score Trend */}
+                        {/* ATS Score — real latest analysis, no fabricated trend (P9) */}
                         <Card className="glass animate-fade-in-up" style={{ animationDelay: "400ms" }}>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     <TrendingUp className="w-5 h-5 text-primary" />
-                                    ATS Score Trend
+                                    ATS Score
                                 </CardTitle>
-                                <CardDescription>Your resume score over time</CardDescription>
+                                <CardDescription>Your latest resume analysis</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="h-[250px] w-full">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart data={scoreHistory}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                                            <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" />
-                                            <YAxis domain={[0, 100]} stroke="hsl(var(--muted-foreground))" />
-                                            <Tooltip
-                                                contentStyle={{
-                                                    backgroundColor: "hsl(var(--card))",
-                                                    border: "1px solid hsl(var(--border))",
-                                                    borderRadius: "8px"
-                                                }}
-                                            />
-                                            <Line
-                                                type="monotone"
-                                                dataKey="score"
-                                                stroke="hsl(var(--primary))"
-                                                strokeWidth={3}
-                                                dot={{ fill: "hsl(var(--primary))", strokeWidth: 2 }}
-                                            />
-                                        </LineChart>
-                                    </ResponsiveContainer>
+                                <div className="h-[250px] w-full flex flex-col items-center justify-center text-center">
+                                    {resumeData?.atsScore != null ? (
+                                        <>
+                                            <span className="text-6xl font-bold text-primary mb-2">
+                                                {resumeData.atsScore}
+                                                <span className="text-2xl text-muted-foreground">/100</span>
+                                            </span>
+                                            <p className="text-muted-foreground max-w-sm">
+                                                {resumeData.atsScore >= 70 ? "Strong score! " : ""}
+                                                Re-analyze after updating your résumé to see how it changes.
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles className="w-10 h-10 text-muted-foreground mb-3" />
+                                            <p className="text-muted-foreground mb-4">
+                                                Analyze your resume to see your ATS score.
+                                            </p>
+                                            <Link to="/upload">
+                                                <Button className="gradient-primary">
+                                                    <Sparkles className="w-4 h-4 mr-2" />
+                                                    Analyze Resume
+                                                </Button>
+                                            </Link>
+                                        </>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
