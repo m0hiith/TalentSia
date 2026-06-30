@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { Briefcase, FileText, BarChart3, Home, LogIn, LogOut, User, LayoutDashboard, Bookmark, ClipboardList, FileEdit, TrendingUp } from "lucide-react";
+import { TalentsiaLogo } from "@/components/TalentsiaLogo";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,8 +33,8 @@ const Navbar = () => {
     <nav aria-label="Main navigation" className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <Link to={user ? "/dashboard" : "/"} className="flex items-center gap-2 group">
-            <img src="/logo.png" alt="TalentSia Logo" className="h-10 w-auto" />
+          <Link to={user ? "/dashboard" : "/"} className="flex items-center group">
+            <TalentsiaLogo variant="full" size="md" />
           </Link>
 
           <div className="hidden md:flex items-center gap-1">
@@ -50,7 +51,7 @@ const Navbar = () => {
                     }`}
                 >
                   <Icon className="w-4 h-4" />
-                  <span className="font-medium">{item.label}</span>
+                  <span className="font-semibold">{item.label}</span>
                 </Link>
               );
             })}
