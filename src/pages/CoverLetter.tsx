@@ -5,18 +5,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, FileText, Copy, Download, Sparkles, AlertCircle } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Link } from "react-router-dom";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
-
-const getGenAI = () => {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    if (!apiKey) {
-        console.error("VITE_GEMINI_API_KEY is missing in .env");
-        return null;
-    }
-    return new GoogleGenerativeAI(apiKey);
-};
+import { supabase } from "@/lib/supabase";
+import { readFunctionError } from "@/lib/ats-service";
 
 const CoverLetter = () => {
     useDocumentMeta({
@@ -41,16 +33,8 @@ const CoverLetter = () => {
             return;
         }
 
-        const genAI = getGenAI();
-        if (!genAI) {
-            toast({ title: "Error", description: "API key missing. Add VITE_GEMINI_API_KEY to .env", variant: "destructive" });
-            return;
-        }
-
         setIsGenerating(true);
         try {
-            const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
-
             const resumeContext = `
         Name: ${resumeData.fullName || "Candidate"}
         Email: ${resumeData.email || ""}
@@ -61,43 +45,21 @@ const CoverLetter = () => {
         Interests: ${resumeData.interests?.join(", ") || "Not specified"}
       `;
 
-            const prompt = `
-        You are a professional cover letter writer. Write a compelling, personalized cover letter based on the following:
-        
-        CANDIDATE PROFILE:
-        ${resumeContext}
-        
-        JOB DESCRIPTION:
-        ${jobDescription}
-        
-        ${companyName ? `COMPANY NAME: ${companyName}` : ""}
-        
-        INSTRUCTIONS:
-        1. Write a professional cover letter (3-4 paragraphs)
-        2. Highlight relevant skills and experience that match the job
-        3. Show enthusiasm for the role and company
-        4. Be specific but concise
-        5. Use a professional but warm tone
-        6. Do NOT include placeholder brackets like [Company Name] - use the actual company name if provided, or write generically if not
-        7. Do NOT include the date or address headers - just the letter body
-        8. Start with "Dear Hiring Manager," or similar appropriate greeting
-        9. End with a strong closing paragraph and "Sincerely," followed by the candidate's name
-        
-        Write the cover letter now:
-      `;
+            // The Gemini key + prompt live server-side in the generate-cover-letter
+            // Supabase Edge Function (P2).
+            const { data, error } = await supabase.functions.invoke("generate-cover-letter", {
+                body: { resumeContext, jobDescription, companyName },
+            });
+            if (error) {
+                throw new Error(await readFunctionError(error, "Couldn't generate the cover letter."));
+            }
 
-            const result = await model.generateContent(prompt);
-            const response = await result.response;
-            const text = response.text();
-
-            setCoverLetter(text);
+            setCoverLetter((data as { coverLetter: string }).coverLetter);
             toast({ title: "Cover letter generated!", description: "Review and customize as needed." });
         } catch (error: unknown) {
-            const err = error as Error;
-            console.error("Error generating cover letter:", err);
             toast({
                 title: "Generation failed",
-                description: err.message || "Please try again later.",
+                description: error instanceof Error ? error.message : "Please try again later.",
                 variant: "destructive"
             });
         } finally {

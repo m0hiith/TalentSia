@@ -1,11 +1,10 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Upload as UploadIcon, FileText, X, Loader2, PenTool } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useResumeStore } from "@/store/resumeStore";
 import { toast } from "@/hooks/use-toast";
 import { analyzeResume } from "@/lib/ats-service";
-import { supabase } from "@/lib/supabase";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const Upload = () => {
@@ -31,13 +30,17 @@ const Upload = () => {
   }, []);
 
   const validateFile = (file: File): boolean => {
-    const validTypes = ["application/pdf", "text/plain"];
+    const validTypes = [
+      "application/pdf",
+      "text/plain",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
     const maxSize = 2 * 1024 * 1024; // 2MB
 
     if (!validTypes.includes(file.type)) {
       toast({
         title: "Invalid file type",
-        description: "Please upload a PDF or TXT file.",
+        description: "Please upload a PDF, DOCX, or TXT file.",
         variant: "destructive"
       });
       return false;
@@ -111,10 +114,8 @@ const Upload = () => {
         missingSkills: result.missingSkills,
         atsSummary: result.summary,
         atsImprovements: result.improvements,
-        formatFeedback: result.formatFeedback,
-        aiInsights: result.aiInsights,
-        resumeText: result.resumeText,
-        fileName: file.name,
+        // Real extracted résumé text for downstream job matching (P8).
+        resumeText: result.fullText,
       };
 
       setResumeData(mergedData);
@@ -128,10 +129,12 @@ const Upload = () => {
       // so user can verify inferred categories.
       navigate("/onboarding");
     } catch (error) {
-      console.error("Analysis failed:", error);
       toast({
         title: "Analysis Failed",
-        description: "There was an error analyzing your resume. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "There was an error analyzing your resume. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -163,14 +166,14 @@ const Upload = () => {
               </div>
               <h3 className="text-xl font-semibold mb-2">Drag & drop your resume here</h3>
               <p className="text-muted-foreground mb-6">or click to browse your files</p>
-              <input type="file" accept=".pdf,.txt" onChange={handleFileChange} className="hidden" id="file-upload" />
+              <input type="file" accept=".pdf,.txt,.docx" onChange={handleFileChange} className="hidden" id="file-upload" />
               <label htmlFor="file-upload">
                 <Button variant="outline" className="cursor-pointer" asChild>
                   <span>Browse Files</span>
                 </Button>
               </label>
               <p className="text-sm text-muted-foreground mt-4">
-                Supports PDF and TXT (max 2MB)
+                Supports PDF, DOCX, and TXT (max 2MB)
               </p>
             </div>
           ) : (

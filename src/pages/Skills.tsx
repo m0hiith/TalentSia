@@ -1,12 +1,12 @@
 import {
-  Check, X, Info, ArrowRight, Lightbulb,
+  Check, Info, ArrowRight, Lightbulb,
   AlertTriangle, BookOpen, FileText, TrendingUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useResumeStore } from "@/store/resumeStore";
 import { useRoadmapStore } from "@/store/roadmapStore";
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { analyzeResume } from "@/lib/ats-service";
 import { generateRoadmap, inferTargetRole } from "@/lib/roadmap-service";
 import { getResourcesForSkill } from "@/lib/learning-recommendations";
@@ -79,27 +79,49 @@ const Skills = () => {
   const { resumeData, updateResumeData } = useResumeStore();
   const { modules, setModules, getProgress } = useRoadmapStore();
   const [loading, setLoading] = useState(true);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [hasAttempted, setHasAttempted] = useState(false);
+
+  const runAnalysis = useCallback(async () => {
+    if (!resumeData?.interests) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setAnalysisError(null);
+    try {
+      const result = await analyzeResume(resumeData);
+      updateResumeData({
+        atsScore: result.score,
+        matchedSkills: result.matchedSkills,
+        missingSkills: result.missingSkills,
+        atsSummary: result.summary,
+        atsImprovements: result.improvements,
+      });
+    } catch (err) {
+      // Surface and STOP. The old code returned a fake score-0 result here,
+      // which (0 being falsy) re-triggered this effect forever. (P3/P4)
+      setAnalysisError(
+        err instanceof Error ? err.message : "We couldn't analyze your resume. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+      setHasAttempted(true);
+    }
+  }, [resumeData, updateResumeData]);
 
   useEffect(() => {
-    const init = async () => {
-      if (resumeData && resumeData.interests && !resumeData.atsScore) {
-        const result = await analyzeResume(resumeData);
-        updateResumeData({
-          atsScore: result.score,
-          matchedSkills: result.matchedSkills,
-          missingSkills: result.missingSkills,
-          atsSummary: result.summary,
-          atsImprovements: result.improvements,
-        });
-      }
+    if (!resumeData) {
       setLoading(false);
-    };
-    if (resumeData) {
-      init();
+      return;
+    }
+    // Auto-run exactly once, only when there is no score yet — never on error.
+    if (resumeData.interests && !resumeData.atsScore && !hasAttempted) {
+      runAnalysis();
     } else {
       setLoading(false);
     }
-  }, [resumeData, updateResumeData]);
+  }, [resumeData, hasAttempted, runAnalysis]);
 
   // Generate roadmap modules (for progress display + learning path page)
   useEffect(() => {
@@ -136,12 +158,32 @@ const Skills = () => {
   }
 
   // Loading state
-  if (loading || (resumeData.interests && !resumeData.atsScore)) {
+  if (loading) {
     return (
       <div className="min-h-screen pt-24 pb-16 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-12 h-12 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
           <p className="text-lg text-muted-foreground">Analyzing your profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state — manual retry only, never an automatic re-fire (P3/P4)
+  if (analysisError) {
+    return (
+      <div className="min-h-screen pt-24 pb-16">
+        <div className="container mx-auto px-4 text-center">
+          <div className="glass rounded-2xl p-10 max-w-lg mx-auto animate-fade-in">
+            <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="w-6 h-6 text-destructive" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2">Analysis didn't complete</h2>
+            <p className="text-muted-foreground mb-6">{analysisError}</p>
+            <Button className="gradient-primary" onClick={runAnalysis}>
+              Retry analysis
+            </Button>
+          </div>
         </div>
       </div>
     );
