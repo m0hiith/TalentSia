@@ -1,43 +1,35 @@
 <!-- gitnexus:start -->
-# GitNexus — Code Intelligence
+# GitNexus — Code Intelligence (optional)
 
-This project is indexed by GitNexus as **TalentSia** (1241 symbols, 2356 relationships, 103 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project can be indexed by GitNexus. The GitNexus MCP tools — `gitnexus_impact`,
+`gitnexus_query`, `gitnexus_context`, `gitnexus_detect_changes`, `gitnexus_rename` — are
+useful for understanding code, assessing change impact, and navigating safely.
 
-> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
+> If a GitNexus tool reports the index is missing or stale, run `npx gitnexus analyze` in
+> the terminal first. The index (`.gitnexus`) is gitignored, so it may not exist locally.
 
-## Always Do
+## Recommended usage
 
-- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
-- **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
-- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
-- When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
-- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
+- Before a non-trivial edit to a function/class/method, consider
+  `gitnexus_impact({target: "symbolName", direction: "upstream"})` to see the blast radius,
+  and surface HIGH/CRITICAL risk to the user.
+- Prefer `gitnexus_rename` over find-and-replace for renames — it understands the call graph.
+- Use `gitnexus_query({query: "concept"})` to find execution flows, and
+  `gitnexus_context({name: "symbolName"})` for a symbol's callers and callees.
+- `gitnexus_detect_changes()` before committing helps confirm the change scope.
 
-## Never Do
-
-- NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
-- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
-- NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
-- NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
+These tools are aids, not gates — use them where they help. They are not a hard
+precondition for every edit.
 
 ## Resources
 
 | Resource | Use for |
 |----------|---------|
 | `gitnexus://repo/TalentSia/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/TalentSia/clusters` | All functional areas |
 | `gitnexus://repo/TalentSia/processes` | All execution flows |
 | `gitnexus://repo/TalentSia/process/{name}` | Step-by-step execution trace |
 
-## CLI
-
-| Task | Read this skill file |
-|------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+> Note: the per-topic `.claude/skills/gitnexus/*/SKILL.md` deep-dive files were removed
+> from this repo. To restore the full skill set, `git checkout -- .claude/skills/gitnexus/`.
 
 <!-- gitnexus:end -->
