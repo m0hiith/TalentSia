@@ -36,3 +36,31 @@ using ( auth.uid() = user_id );
 create policy "Users can delete their own profile"
 on public.student_profiles for delete
 using ( auth.uid() = user_id );
+
+-- =====================================================================
+-- 4. Jobs table (read-only for authenticated users) — P11
+-- The Jobs page is behind ProtectedRoute, so jobs are login-only. RLS is
+-- enabled with ONLY a select policy: anon/authenticated cannot insert/update/
+-- delete via the REST API (admin writes go through the service key or dashboard).
+-- =====================================================================
+create table if not exists public.jobs (
+    id uuid default gen_random_uuid() primary key,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+    "Title" text,
+    "Company" text,
+    "Location" text,
+    "Salary" text,
+    "Experience" text,
+    "Stipend" text,
+    "Link" text,
+    "Description" text,
+    skills text[]
+);
+
+alter table public.jobs enable row level security;
+
+-- Authenticated users may read jobs; no write policies exist (writes are denied).
+create policy "Authenticated users can read jobs"
+on public.jobs for select
+to authenticated
+using ( true );
