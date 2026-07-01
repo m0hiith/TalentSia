@@ -234,15 +234,17 @@ const Jobs = () => {
                 className="pl-10 bg-secondary/50 border-border"
               />
             </div>
-            <Button onClick={handleSearch} className="gradient-primary">
-              <Search className="w-4 h-4 mr-2" />
-              Search
-            </Button>
-            <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isFetching}>
-              <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
-            </Button>
+            <div className="flex gap-4">
+              <Button onClick={handleSearch} className="gradient-primary flex-1 md:flex-none">
+                <Search className="w-4 h-4 mr-2" />
+                Search
+              </Button>
+              <Button variant="outline" size="icon" onClick={handleRefresh} disabled={isFetching} className="shrink-0">
+                <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2 mt-4">
+          <div className="flex flex-wrap items-center gap-2 mt-4">
             <Filter className="w-5 h-5 text-muted-foreground" />
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-[180px] bg-secondary/50">

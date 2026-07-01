@@ -251,7 +251,7 @@ const LearningPath = () => {
         return (
             <div className="min-h-screen pt-24 pb-16">
                 <div className="container mx-auto px-4 text-center">
-                    <div className="glass rounded-2xl p-10 max-w-lg mx-auto animate-fade-in">
+                    <div className="glass rounded-2xl p-6 md:p-10 max-w-lg mx-auto animate-fade-in">
                         <h2 className="text-2xl font-bold mb-4">No Profile Data Found</h2>
                         <p className="text-muted-foreground mb-6">
                             Please analyze your resume first to get a personalized learning path.
@@ -331,7 +331,7 @@ const LearningPath = () => {
                 </div>
 
                 {/* Rescan Resume CTA */}
-                <div className="glass rounded-2xl p-8 text-center md:text-left md:flex md:items-center md:justify-between animate-fade-in-up" style={{ animationDelay: "600ms" }}>
+                <div className="glass rounded-2xl p-6 md:p-8 text-center md:text-left md:flex md:items-center md:justify-between animate-fade-in-up" style={{ animationDelay: "600ms" }}>
                     <div className="mb-4 md:mb-0">
                         <h3 className="text-xl font-bold text-primary mb-1">
                             Feeling confident with your progress?

@@ -143,7 +143,7 @@ const Skills = () => {
     return (
       <div className="min-h-screen pt-24 pb-16">
         <div className="container mx-auto px-4 text-center">
-          <div className="glass rounded-2xl p-10 max-w-lg mx-auto animate-fade-in">
+          <div className="glass rounded-2xl p-6 md:p-10 max-w-lg mx-auto animate-fade-in">
             <h2 className="text-2xl font-bold mb-4">No Profile Data Found</h2>
             <p className="text-muted-foreground mb-6">
               Please create your profile first to see your skills analysis.
@@ -174,7 +174,7 @@ const Skills = () => {
     return (
       <div className="min-h-screen pt-24 pb-16">
         <div className="container mx-auto px-4 text-center">
-          <div className="glass rounded-2xl p-10 max-w-lg mx-auto animate-fade-in">
+          <div className="glass rounded-2xl p-6 md:p-10 max-w-lg mx-auto animate-fade-in">
             <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center mx-auto mb-4">
               <AlertTriangle className="w-6 h-6 text-destructive" />
             </div>
@@ -211,7 +211,7 @@ const Skills = () => {
         </div>
 
         {/* ATS Score + Summary Card */}
-        <div className="glass rounded-2xl p-8 mb-8 animate-fade-in-up border-primary/20 bg-primary/5">
+        <div className="glass rounded-2xl p-6 md:p-8 mb-8 animate-fade-in-up border-primary/20 bg-primary/5">
           <div className="flex flex-col md:flex-row gap-6">
             {/* Score circle */}
             <div className="flex-shrink-0 flex flex-col items-center justify-center">
@@ -311,7 +311,7 @@ const Skills = () => {
         </div>
 
         {/* Learning Path CTA */}
-        <div className="glass rounded-2xl p-8 animate-fade-in-up border-primary/20" style={{ animationDelay: "300ms" }}>
+        <div className="glass rounded-2xl p-6 md:p-8 animate-fade-in-up border-primary/20" style={{ animationDelay: "300ms" }}>
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center flex-shrink-0">
               <TrendingUp className="w-8 h-8 text-primary" />

@@ -24,7 +24,7 @@ const Index = () => {
   }];
   return <div className="min-h-screen flex flex-col">
     {/* Hero Section */}
-    <section className="relative pt-32 pb-20 overflow-hidden">
+    <section className="relative pt-28 pb-16 md:pt-32 md:pb-20 overflow-hidden">
       {/* Background effects */}
       <div className="absolute inset-0 gradient-hero" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl" />
@@ -53,7 +53,7 @@ const Index = () => {
     </section>
 
     {/* Features Section */}
-    <section className="py-20 relative">
+    <section className="py-14 md:py-20 relative">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 animate-fade-in">
@@ -71,9 +71,9 @@ const Index = () => {
     </section>
 
     {/* CTA Section */}
-    <section className="py-20 relative">
+    <section className="py-14 md:py-20 relative">
       <div className="container mx-auto px-4">
-        <div className="glass rounded-2xl p-10 md:p-16 text-center max-w-4xl mx-auto relative overflow-hidden">
+        <div className="glass rounded-2xl p-6 sm:p-10 md:p-16 text-center max-w-4xl mx-auto relative overflow-hidden">
           <div className="absolute inset-0 gradient-hero opacity-50" />
           <div className="relative z-10">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
