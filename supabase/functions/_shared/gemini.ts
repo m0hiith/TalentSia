@@ -25,11 +25,16 @@ export async function generateGeminiContent(
   prompt: string,
   generationConfig: GenerationConfig,
 ): Promise<string> {
+  // Header auth rather than a ?key= query param: keeps the key out of URLs and
+  // request logs, and tolerates a secret stored with stray whitespace.
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey.trim(),
+      },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig,
