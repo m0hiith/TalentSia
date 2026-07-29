@@ -1,8 +1,8 @@
 // Supabase Edge Function: generate a cover letter with Gemini (server-side key). (P2)
 // Deploy:  supabase functions deploy generate-cover-letter
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { GoogleGenerativeAI } from "npm:@google/generative-ai@0.24.1";
 import { corsHeaders, jsonResponse } from "../_shared/cors.ts";
+import { generateGeminiContent, GeminiError } from "../_shared/gemini.ts";
 
 function buildPrompt(resumeContext: string, jobDescription: string, companyName: string): string {
   return `
@@ -53,20 +53,15 @@ Deno.serve(async (req: Request) => {
     const apiKey = Deno.env.get("GEMINI_API_KEY");
     if (!apiKey) return jsonResponse({ error: "AI service is not configured." }, 500);
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-flash-latest",
-      generationConfig: { temperature: 0.7, topK: 40, topP: 1, maxOutputTokens: 2048 },
-    });
-
-    const result = await model.generateContent(buildPrompt(resumeContext, jobDescription, companyName));
-    const coverLetter = result.response.text();
-    if (!coverLetter.trim()) {
-      return jsonResponse({ error: "The AI returned an empty response. Please try again." }, 502);
-    }
+    const coverLetter = await generateGeminiContent(
+      apiKey,
+      buildPrompt(resumeContext, jobDescription, companyName),
+      { temperature: 0.7, topK: 40, topP: 1, maxOutputTokens: 2048 },
+    );
 
     return jsonResponse({ coverLetter }, 200);
-  } catch (_err) {
+  } catch (err) {
+    if (err instanceof GeminiError) return jsonResponse({ error: err.message }, err.status);
     return jsonResponse({ error: "Something went wrong. Please try again." }, 500);
   }
 });

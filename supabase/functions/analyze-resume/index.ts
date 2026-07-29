@@ -3,9 +3,9 @@
 // Deploy:  supabase functions deploy analyze-resume
 // Secret:  supabase secrets set GEMINI_API_KEY=...
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { GoogleGenerativeAI } from "npm:@google/generative-ai@0.24.1";
 import { atsResultSchema } from "../_shared/ats-schema.ts";
 import { corsHeaders, jsonResponse } from "../_shared/cors.ts";
+import { generateGeminiContent, GeminiError } from "../_shared/gemini.ts";
 
 function buildPrompt(resumeText: string, targetRole: string): string {
   return `
@@ -56,20 +56,13 @@ Deno.serve(async (req: Request) => {
     const apiKey = Deno.env.get("GEMINI_API_KEY");
     if (!apiKey) return jsonResponse({ error: "AI service is not configured." }, 500);
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-flash-latest",
-      generationConfig: {
-        temperature: 0.4,
-        topK: 32,
-        topP: 1,
-        maxOutputTokens: 4096,
-        responseMimeType: "application/json",
-      },
+    const text = await generateGeminiContent(apiKey, buildPrompt(resumeText, targetRole), {
+      temperature: 0.4,
+      topK: 32,
+      topP: 1,
+      maxOutputTokens: 4096,
+      responseMimeType: "application/json",
     });
-
-    const result = await model.generateContent(buildPrompt(resumeText, targetRole));
-    const text = result.response.text();
 
     let parsed: unknown;
     try {
@@ -97,7 +90,8 @@ Deno.serve(async (req: Request) => {
     }, { onConflict: "user_id" });
 
     return jsonResponse({ ...a, fullText: resumeText }, 200);
-  } catch (_err) {
+  } catch (err) {
+    if (err instanceof GeminiError) return jsonResponse({ error: err.message }, err.status);
     return jsonResponse({ error: "Something went wrong. Please try again." }, 500);
   }
 });
